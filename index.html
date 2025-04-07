@@ -1,432 +1,1460 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador Apiterápico - V4.5: Progressão Corrigida</title> <!-- Updated Title -->
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Jardim 3D - Missões Pacientes V11 (Firepit & Wood)</title>
     <style>
-        /* --- Base Styles (Keep previous styles) --- */
-        body, html { margin: 0; padding: 0; overflow: hidden; font-family: 'Arial', sans-serif; color: white; background-color: #333; }
-        #game-container { width: 100vw; height: 100vh; position: relative; top: 0; left: 0; z-index: 1; }
-        #info-panel { position: absolute; top: 10px; left: 10px; background: rgba(0, 0, 0, 0.8); padding: 15px; border-radius: 10px; width: 350px; max-height: calc(100vh - 40px - 150px); overflow-y: auto; z-index: 2; color: #eee; }
-        .mission-header { font-size: 1.1em; font-weight: bold; margin-bottom: 10px; padding: 8px; background-color: rgba(255, 193, 7, 0.2); border-left: 4px solid #ffc107; border-radius: 4px; }
-        .mission-phase1 { border-left: 4px solid #ffc107; background-color: rgba(255, 193, 7, 0.2); } /* Explicit Phase 1 Style */
-        .mission-phase2 { border-left: 4px solid #00bcd4; background-color: rgba(0, 188, 212, 0.2); }
-        .mission-phase3 { border-left: 4px solid #ff9800; background-color: rgba(255, 152, 0, 0.2); }
-        h4, h5 { border-bottom: 1px solid #555; padding-bottom: 5px; margin-bottom: 10px; }
-        ul { list-style: none; padding-left: 0; }
-        li { margin-bottom: 5px; }
-        #status-message { margin-top: 15px; padding: 10px; background-color: rgba(255, 255, 255, 0.1); border-radius: 5px; min-height: 40px; font-style: italic; color: #aaaaff; }
-        #pacientes div { margin-bottom: 8px; padding: 5px; border-radius: 4px; background-color: rgba(255, 255, 255, 0.05); }
-        #pacientes div:nth-child(odd) { background-color: rgba(255, 255, 255, 0.1); }
-        .storage-section li { font-size: 0.9em; }
-        .carrying { color: #ffeb3b; }
-        .hive { color: #8bc34a; }
-        .venom-storage { color: #ff00ff; font-weight: bold;}
-        .water-storage { color: #03a9f4; font-weight: bold;}
-        .homeopathic-storage { color: #4caf50; font-weight: bold; }
-        .cera-storage { color: #FFA500; font-weight: bold; }
-        #mission-area { margin-bottom: 15px; }
-        #trophy-display { margin-top: 10px; color: #FFD700; font-weight: bold; }
-        #nursery-status { margin-top: 10px; color:#FFA500; }
-        #minimap-container { position: absolute; bottom: 10px; right: 10px; width: 150px; height: 150px; border: 2px solid rgba(255, 255, 255, 0.5); background-color: rgba(0, 0, 0, 0.6); border-radius: 5px; z-index: 2; }
+        /* CSS identical to previous version */
+        /* --- Base Styles --- */
+        body, html { margin: 0; padding: 0; overflow: hidden; font-family: 'Arial', sans-serif; background-color: #e0f2f7; height: 100%; width: 100%; }
+        #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; cursor: grab; }
+        #canvas-container.pointer-locked { cursor: none; }
+        canvas { display: block; }
+
+        /* --- Info Panel --- */
+        #info-panel { position: absolute; top: 20px; left: 20px; background: rgba(255, 255, 255, 0.97); padding: 20px; border-radius: 12px; width: 320px; max-width: 85%; max-height: calc(100vh - 230px); overflow-y: auto; z-index: 10; color: #333; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); visibility: hidden; opacity: 0; transition: opacity 0.4s ease, visibility 0s linear 0.4s; border-left: 5px solid #4CAF50; }
+        #info-panel.visible { visibility: visible; opacity: 1; transition: opacity 0.4s ease; }
+        #info-panel h3 { margin-top: 0; margin-bottom: 15px; color: #2E7D32; border-bottom: 1px solid #ccc; padding-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        #info-panel h3::before { content: '🌿'; font-size: 1.2em; }
+        #info-panel p { margin-bottom: 12px; line-height: 1.6; font-size: 0.95em; }
+        #info-panel p strong { color: #4CAF50; }
+        #info-panel a.educational-link { display: inline-block; margin-top: 10px; padding: 8px 15px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px; transition: background-color 0.2s ease; font-size: 0.9em; }
+        #info-panel a.educational-link:hover { background-color: #388E3C; }
+        #close-info { position: absolute; top: 10px; right: 10px; cursor: pointer; background: #e0e0e0; color: #555; border: none; border-radius: 50%; width: 28px; height: 28px; font-size: 16px; line-height: 28px; text-align: center; transition: background-color 0.2s ease, color 0.2s ease; }
+        #close-info:hover { background-color: #f44336; color: white; }
+
+        /* --- Right Panel Container --- */
+        #right-panel-container { position: absolute; top: 20px; right: 20px; width: 350px; max-width: 90%; max-height: calc(100vh - 40px); display: flex; flex-direction: column; gap: 15px; z-index: 5; }
+
+        /* --- Mission Panel --- */
+        #mission-panel { background: rgba(0, 51, 51, 0.85); color: #e0f2f7; padding: 15px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.3); overflow-y: auto; font-size: 0.9em; border-left: 4px solid #80cbc4; flex-shrink: 1; min-height: 150px; }
+        #mission-panel h4 { border-bottom: 1px solid #80cbc4; padding-bottom: 8px; margin-top: 0; margin-bottom: 10px; color: #ffffff; font-weight: bold; }
+        #mission-panel h5 { margin-top: 15px; margin-bottom: 8px; color: #b2dfdb; font-weight: bold; }
+        #current-mission { padding: 10px; background-color: rgba(255, 255, 255, 0.1); border-radius: 5px; margin-bottom: 15px; border-left: 3px solid #ffeb3b; min-height: 30px; line-height: 1.5; }
+        #knowledge-base ul, #crafted-items ul, #extracted-oils ul { list-style: none; padding-left: 0; margin: 0 0 10px 0; }
+        #knowledge-base li, #crafted-items li, #extracted-oils li { margin-bottom: 5px; padding-left: 20px; position: relative; line-height: 1.4; }
+        #knowledge-base li::before { content: '🌿'; position: absolute; left: 0; color: #a5d6a7; font-size: 1em; top: 1px; }
+        #crafted-items li { color: #ffcc80; }
+        #crafted-items li::before { content: '🍵'; position: absolute; left: 0; color: #ffcc80; font-size: 1em; top: 1px; }
+        #extracted-oils li { color: #ce93d8; }
+        #extracted-oils li::before { content: '💧'; position: absolute; left: 0; color: #ce93d8; font-size: 1em; top: 1px; }
+        #status-message { margin-top: 15px; padding: 10px; background-color: rgba(0, 0, 0, 0.3); border-radius: 5px; min-height: 35px; font-style: italic; color: #b2dfdb; line-height: 1.4; transition: opacity 0.5s ease; }
+        hr.mission-divider { border: none; height: 1px; background-color: rgba(128, 203, 196, 0.4); margin: 15px 0; }
+
+        /* --- Inventory Panel --- */
+        #inventory-panel { background: rgba(51, 0, 51, 0.8); color: #f3e5f5; padding: 15px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.3); font-size: 0.85em; border-left: 4px solid #ce93d8; flex-shrink: 0; }
+        #inventory-panel h4 { border-bottom: 1px solid #ce93d8; padding-bottom: 8px; margin-top: 0; margin-bottom: 10px; color: #ffffff; font-weight: bold; }
+        #inventory-list li, #bench-inventory-list li { color: #e1bee7; margin-bottom: 5px; padding-left: 20px; position: relative; line-height: 1.4; }
+        #inventory-list li::before, #bench-inventory-list li::before { content: ''; position: absolute; left: 0; color: #e1bee7; font-size: 1em; top: 1px; }
+        #inventory-list li[data-type="plant"]::before, #bench-inventory-list li[data-type="plant"]::before { content: '🌱'; }
+        #inventory-list li[data-type="water"]::before, #bench-inventory-list li[data-type="water"]::before { content: '💧'; color: #90caf9; }
+        #inventory-list li[data-type="wood"]::before { content: '🪵'; color: #bcaaa4; } /* NEW: Wood icon */
+        #bench-inventory-list li[data-type="wood"]::before { content: '🪵'; color: #bcaaa4; } /* NEW: Wood icon */
+        .inventory-section h5 { margin-top: 10px; margin-bottom: 5px; color: #f3e5f5; font-size: 0.9em; border-bottom: 1px dashed rgba(243, 229, 245, 0.5); padding-bottom: 3px;}
+        #inventory-list, #bench-inventory-list { list-style: none; padding-left: 0; margin: 0; }
+
+        /* --- UI Elements --- */
+        #instructions { position: absolute; bottom: 70px; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.75); color: white; padding: 10px 20px; border-radius: 20px; font-size: 0.9em; z-index: 3; pointer-events: none; opacity: 1; transition: opacity 1s ease 4s; text-align: center; }
+        #instructions.hidden { opacity: 0; }
+        #controls-toggle { position: absolute; bottom: 20px; left: 20px; padding: 10px 15px; background-color: #607D8B; color: white; border: none; border-radius: 5px; cursor: pointer; z-index: 5; font-size: 0.9em; }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 4px; height: 4px; background-color: white; border-radius: 50%; transform: translate(-50%, -50%); z-index: 5; mix-blend-mode: difference; display: none; pointer-events: none;}
+        #canvas-container.pointer-locked ~ #crosshair { display: block; }
+        #minimap-container { position: absolute; bottom: 20px; right: 20px; /* Now sibling to right-panel */ width: 150px; height: 150px; border: 2px solid rgba(255, 255, 255, 0.6); background-color: rgba(0, 0, 0, 0.7); border-radius: 8px; z-index: 4; overflow: hidden; box-shadow: 0 0 10px rgba(0,0,0,0.3); }
         #minimap-canvas { width: 100%; height: 100%; display: block; }
-        .dialog-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 600px; max-width: 90%; background: rgba(0, 0, 0, 0.9); border-radius: 15px; padding: 20px; box-shadow: 0 0 20px rgba(0, 0, 0, 0.5); z-index: 10; visibility: hidden; opacity: 0; transition: opacity 0.3s ease, visibility 0s linear 0.3s; }
-        .dialog-container.visible { visibility: visible; opacity: 1; transition: opacity 0.3s ease; }
-        .dialog-content { position: relative; }
-        .dialog-header { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; }
-        .npc-name { font-size: 1.2em; color: #ffc107; }
-        .npc-icon { font-size: 2em; }
-        .dialog-text { line-height: 1.5; margin-bottom: 15px; }
-        .dialog-options { margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
-        .dialog-option { background: rgba(255, 193, 7, 0.2); border: 1px solid #ffc107; color: white; padding: 8px 15px; border-radius: 20px; cursor: pointer; transition: all 0.2s ease; }
-        .dialog-option:hover { background: #ffc107; color: #333; }
-        .status-critical { animation: criticalBlink 1s infinite; border: 2px solid #ff0000 !important; }
-        @keyframes criticalBlink { 0% { background-color: rgba(255, 0, 0, 0.2); } 50% { background-color: rgba(255, 0, 0, 0.5); } 100% { background-color: rgba(255, 0, 0, 0.2); } }
-        .highlight { animation: highlightGlow 2s ease-out forwards; box-shadow: 0 0 0px transparent; }
-        @keyframes highlightGlow { 0% { box-shadow: 0 0 15px 5px #ffc107; } 100% { box-shadow: 0 0 0px transparent; } }
+        #interaction-prompt { position: absolute; top: 55%; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.7); color: white; padding: 5px 10px; border-radius: 5px; font-size: 0.8em; z-index: 6; display: none; pointer-events: none; }
+        #canvas-container.pointer-locked ~ #interaction-prompt.visible { display: block; }
+        #bee-balloon { position: absolute; display: none; background: #fff8c6; border-radius: 10px; box-shadow: 0 0 6px #999; font-weight: bold; padding: 8px 12px; z-index: 15; color: #444; pointer-events: none; }
+
+        /* --- Plant Labels --- */
+        #plant-labels-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 2; }
+        .plant-label { position: absolute; background-color: rgba(0, 0, 0, 0.65); color: #f0f0f0; padding: 4px 9px; border-radius: 5px; font-size: 12px; white-space: nowrap; transform: translate(-50%, -50%); user-select: none; display: none; opacity: 0; transition: opacity 0.3s ease; }
+        .plant-label.visible { display: block; }
+        @keyframes pulse-fade { 0%, 100% { opacity: 0.3; transform: translate(-50%, -50%) scale(0.98); } 50% { opacity: 0.9; transform: translate(-50%, -50%) scale(1.02); } }
+        .plant-label.pulsing { animation: pulse-fade 2s infinite ease-in-out; }
     </style>
 </head>
 <body>
-    <div id="game-container"></div>
+    <div id="canvas-container"></div>
+    <div id="plant-labels-container"></div> <div id="crosshair"></div>
+    <div id="interaction-prompt">Pressione [E] para Interagir</div>
     <div id="info-panel">
-        <h4>Missões Apiterápicas 🐝 <span id="phase-indicator"></span></h4>
-        <div id="mission-area">
+        <button id="close-info" title="Fechar">×</button>
+        <h3 id="plant-name">Nome da Planta</h3> <p><strong>Grupo:</strong> <span id="plant-group"></span></p>
+        <p><strong>Benefícios / Descrição:</strong></p>
+        <p id="plant-benefits">Detalhes...</p>
+        <a id="plant-link" href="#" target="_blank" class="educational-link">Saiba Mais</a>
+    </div>
+    <div id="right-panel-container">
+         <div id="inventory-panel">
+             <h4>Inventário 🎒</h4>
+             <div class="inventory-section">
+                 <h5>Carregando (Máx: <span id="max-plant-inv">5</span> plantas, <span id="max-wood-inv">10</span> lenhas):</h5>
+                 <ul id="inventory-list"></ul>
+             </div>
+             <div class="inventory-section">
+                 <h5>Na Bancada ⚗️:</h5>
+                 <ul id="bench-inventory-list"></ul>
+             </div>
+         </div>
+        <div id="mission-panel">
+            <h4>Diário do Herbalista 📜</h4>
             <h5>Missão Atual:</h5>
-            <div id="current-mission" class="mission-header">Carregando missão...</div>
-            <div id="trophy-display"></div>
-            <div id="nursery-status"></div>
+            <div id="current-mission">Carregando...</div>
+            <hr class="mission-divider">
+            <h5>Base de Conhecimento:</h5>
+            <div id="knowledge-base"><ul></ul></div>
+            <hr class="mission-divider">
+            <h5>Preparações Feitas:</h5>
+            <div id="crafted-items"><ul></ul></div>
+            <hr class="mission-divider">
+            <h5>Óleos Essenciais Extraídos:</h5>
+            <div id="extracted-oils"><ul></ul></div>
+            <hr class="mission-divider">
+            <div id="status-message">Explore o jardim...</div>
         </div>
-        <hr>
-        <h5>Inventário & Colmeia</h5>
-        <div class="storage-section">
-            <div>Capacidade de Carga: <span id="carrying-capacity">0</span></div>
-            <h6>Carregando Agora:</h6>
-            <ul id="carrying-now"></ul>
-            <h6>Recursos na Colmeia:</h6>
-            <ul id="hive-storage"></ul>
-        </div>
-        <hr>
-        <h5>Centro de Práticas Integrativas / Berçário</h5>
-        <div id="pacientes"></div>
-        <hr>
-        <div id="status-message">Use W/A/S/D/Setas, Espaço(Subir)/Shift(Descer). 'E' na Colmeia. Aproxime-se do Apicultor para orientações.</div>
     </div>
+    <div id="instructions">
+        Orbital: Clique/Arraste, Scroll, Clique obj.<br>
+        Pessoal: [CLIQUE BOTÃO], W/A/S/D, Mouse, [E] Ver Info/Falar, [F] Coletar Planta/Lenha/Depositar, [G] Usar Bancada(Chá)/Fogueira(Óleo), [ESC] Sair.<br>
+        (Passe perto do Recurso de Água 💧 para coletar)
+    </div>
+    <button id="controls-toggle">Ativar Visão Pessoal</button>
     <div id="minimap-container"><canvas id="minimap-canvas"></canvas></div>
-    <div id="dialog-box" class="dialog-container">
-        <div class="dialog-content">
-            <div class="dialog-header">
-                <span id="npc-icon" class="npc-icon"></span>
-                <span id="npc-name" class="npc-name"></span>
-            </div>
-            <div id="dialog-text" class="dialog-text"></div>
-            <div id="dialog-options" class="dialog-options"></div>
-        </div>
-    </div>
+    <div id="bee-balloon">🐝 O Poder das Abelhas - Apiterapia - Interagir [F]</div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+
     <script>
-        // --- Basic Setup --- (Unchanged)
-        const scene = new THREE.Scene(); scene.background = new THREE.Color(0x87CEEB); const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000); const renderer = new THREE.WebGLRenderer({ antialias: true }); renderer.setSize(window.innerWidth, window.innerHeight); renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; document.getElementById('game-container').appendChild(renderer.domElement); const clock = new THREE.Clock(); const ambientLight = new THREE.AmbientLight(0xffffff, 0.6); scene.add(ambientLight); const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8); directionalLight.position.set(5, 15, 10); directionalLight.castShadow = true; directionalLight.shadow.mapSize.width = 2048; directionalLight.shadow.mapSize.height = 2048; directionalLight.shadow.camera.near = 0.5; directionalLight.shadow.camera.far = 50; directionalLight.shadow.camera.left = -20; directionalLight.shadow.camera.right = 20; directionalLight.shadow.camera.top = 20; directionalLight.shadow.camera.bottom = -20; scene.add(directionalLight);
-        // --- Minimap Setup --- (Unchanged)
-        const minimapCanvas = document.getElementById('minimap-canvas'); const minimapSize = 150; minimapCanvas.width = minimapSize; minimapCanvas.height = minimapSize; const minimapCtx = minimapCanvas.getContext('2d'); const minimapWorldSize = 50; const minimapScale = minimapSize / minimapWorldSize;
-        // --- Bee Setup --- (Unchanged)
-        const beeGroup = new THREE.Group(); const beeBodyGeometry = new THREE.SphereGeometry(0.15, 16, 12); const beeBodyMaterial = new THREE.MeshStandardMaterial({ color: 0xffeb3b }); const beeBody = new THREE.Mesh(beeBodyGeometry, beeBodyMaterial); beeBody.castShadow = true; beeGroup.add(beeBody); const wingGeo = new THREE.PlaneGeometry(0.25, 0.1); const wingMat = new THREE.MeshStandardMaterial({ color: 0xADD8E6, side: THREE.DoubleSide, transparent: true, opacity: 0.7 }); const lWing = new THREE.Mesh(wingGeo, wingMat); lWing.rotation.set(-Math.PI/6, Math.PI/2, 0); lWing.position.set(-0.15, 0.05, 0); beeGroup.add(lWing); const rWing = lWing.clone(); rWing.rotation.set(Math.PI/6, Math.PI/2, 0); rWing.position.set(0.15, 0.05, 0); beeGroup.add(rWing); beeGroup.position.set(0, 0.5, 1); scene.add(beeGroup);
-        // --- Environment Setup --- (Unchanged, includes nursery placeholder)
-        const groundGeometry = new THREE.PlaneGeometry(80, 80); const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x55aa55, side: THREE.DoubleSide }); const ground = new THREE.Mesh(groundGeometry, groundMaterial); ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground); const waterGeometry = new THREE.PlaneGeometry(12, 10); const waterMaterial = new THREE.MeshStandardMaterial({ color: 0x4682B4, transparent: true, opacity: 0.85, roughness: 0.1, metalness: 0.2, side: THREE.DoubleSide, envMapIntensity: 0.8 }); const water = new THREE.Mesh(waterGeometry, waterMaterial); water.rotation.x = -Math.PI / 2; water.position.set(12, 0.01, 8); water.receiveShadow = true; scene.add(water); const hiveGroup = new THREE.Group(); const hiveBaseGeo = new THREE.CylinderGeometry(0.6, 0.8, 0.8, 12); const hiveBaseMat = new THREE.MeshStandardMaterial({ color: 0xDAA520 }); const hiveBase = new THREE.Mesh(hiveBaseGeo, hiveBaseMat); hiveBase.castShadow = true; hiveBase.receiveShadow = true; hiveGroup.add(hiveBase); const hiveTopGeo = new THREE.SphereGeometry(0.6, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2); const hiveTop = new THREE.Mesh(hiveTopGeo, hiveBaseMat); hiveTop.position.y = 0.4; hiveTop.castShadow = true; hiveTop.receiveShadow = true; hiveGroup.add(hiveTop); const hiveEntranceGeo = new THREE.CircleGeometry(0.1, 12); const hiveEntranceMat = new THREE.MeshBasicMaterial({ color: 0x333333 }); const hiveEntrance = new THREE.Mesh(hiveEntranceGeo, hiveEntranceMat); hiveEntrance.position.set(0, -0.1, 0.61); hiveEntrance.rotation.x = -0.2; hiveGroup.add(hiveEntrance); const hivePosition = new THREE.Vector3(0, 0.4, 0); hiveGroup.position.copy(hivePosition); scene.add(hiveGroup); let nurseryMesh = null; const venomSourceGeo = new THREE.IcosahedronGeometry(0.3, 0); const venomSourceMat = new THREE.MeshStandardMaterial({ color: 0x9400D3, emissive: 0x4B0082, roughness: 0.6 }); const venomSource = new THREE.Mesh(venomSourceGeo, venomSourceMat); const venomSourcePosition = new THREE.Vector3(-15, 0.3, 15); venomSource.position.copy(venomSourcePosition); venomSource.castShadow = true; venomSource.userData = { type: 'venomSource', active: true }; scene.add(venomSource); let activeResources = []; activeResources.push(venomSource); function createTree(x, z) { const trunkHeight = Math.random() * 1.5 + 1; const trunkGeo = new THREE.CylinderGeometry(0.15, 0.2, trunkHeight, 8); const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8B4513 }); const trunk = new THREE.Mesh(trunkGeo, trunkMat); trunk.position.set(x, trunkHeight / 2, z); trunk.castShadow = true; trunk.receiveShadow = true; scene.add(trunk); const leavesHeight = Math.random() * 1 + 0.5; const leavesGeo = new THREE.SphereGeometry(0.7, 8, 6); const leavesMat = new THREE.MeshStandardMaterial({ color: 0x006400 }); const leaves = new THREE.Mesh(leavesGeo, leavesMat); leaves.position.set(x, trunkHeight + leavesHeight * 0.4, z); leaves.castShadow = true; scene.add(leaves); } createTree(5, -5); createTree(-4, -8); createTree(6, -12); createTree(-7, -3); createTree(0, -10); createTree(10, 8); createTree(-8, 10); createTree(15, -5); createTree(-12, -15); createTree(18, 10); createTree(-10, 18); const waterSourceGeo = new THREE.SphereGeometry(0.1, 8, 6); const waterSourceMat = new THREE.MeshStandardMaterial({ color: 0x03a9f4, emissive: 0x01579b, transparent: true, opacity: 0.8 }); let activeWaterSources = [];
+        // --- Basic Setup ---
+        let currentControlsMode = 'orbit';
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xADD8E6);
+        scene.fog = new THREE.Fog(0xADD8E6, 20, 70);
+        const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 6, 14); camera.lookAt(0, 0.5, 0);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        const canvasContainer = document.getElementById('canvas-container');
+        canvasContainer.appendChild(renderer.domElement);
+        const clock = new THREE.Clock();
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7); scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
+        directionalLight.position.set(20, 25, 15); directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048; directionalLight.shadow.mapSize.height = 2048;
+        directionalLight.shadow.camera.near = 0.5; directionalLight.shadow.camera.far = 80;
+        directionalLight.shadow.camera.left = -30; directionalLight.shadow.camera.right = 30;
+        directionalLight.shadow.camera.top = 30; directionalLight.shadow.camera.bottom = -30;
+        scene.add(directionalLight);
+        const groundGeometry = new THREE.PlaneGeometry(80, 80);
+        const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x7CB342, side: THREE.DoubleSide, roughness: 0.9, metalness: 0.0 });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
 
-        // --- Game State & Logic Variables ---
-        const carryingCapacity = 5;
-        const currentlyCarrying = { mel: 0, propolis: 0, polen: 0, geleia: 0, venom: 0, water: 0, cera: 0 }; // Added cera
-        const hiveStorage = { mel: 0, propolis: 0, polen: 0, geleia: 0, venom: 0, water: 0, veneno_homeopatico: 0, cera: 0 }; // Added cera
-        let pacientes = []; const patientMarkers = [];
-        const statusMessageEl = document.getElementById('status-message');
-        let missions = []; // Will be assigned phase 1 initially
-        let currentMissionIndex = 0;
-        let currentPhase = 1; // Start at phase 1
-        let phaseComplete = false; // Is the *current* phase complete?
-        let awaitingPhaseTransitionTalk = false; // Waiting for player to talk to NPC?
-        let hasReceivedTrophy = false;
-        let nurseryBuilt = false;
+        // --- Constants ---
+        const PLANT_RESPAWN_TIME = 45.0;
+        const WOOD_RESPAWN_TIME = 60.0; // NEW: Wood respawn time
+        const WATER_COLLECT_AMOUNT = 3;
+        const MAX_PLAYER_PLANT_INVENTORY = 5;
+        const MAX_PLAYER_WOOD_INVENTORY = 10; // NEW: Wood inventory limit
+        const WATER_RESOURCE_RESPAWN_TIME = 5.0; // seconds
+        const WATER_RESOURCE_COLLECT_DISTANCE = 1.2; // How close player needs to be
+        const WOOD_FOR_OIL = 3; // NEW: Wood needed per oil extraction
+        document.getElementById('max-plant-inv').textContent = MAX_PLAYER_PLANT_INVENTORY;
+        document.getElementById('max-wood-inv').textContent = MAX_PLAYER_WOOD_INVENTORY; // NEW: Update UI
 
-        // --- Missions (Phase 1, 2, 3 Definitions) ---
-        const phase1Missions = [ /* ... same as before ... */ { id: 'p1_m1', type: 'collect', target: 'mel', goal: 3, description: "Colete 3 Néctar (🍯 Mel) e deposite na Colmeia." }, { id: 'p1_m2', type: 'treat', targetPatientId: 1, description: "Use Mel da Colmeia para tratar Paciente 1 (Ferida)." }, { id: 'p1_m3', type: 'collect', target: 'propolis', goal: 2, description: "Colete 2 Resina (🪵 Própolis) e deposite." }, { id: 'p1_m4', type: 'collect', target: 'polen', goal: 4, description: "Colete 4 Pólen (🌼 Pólen) e deposite." }, { id: 'p1_m5', type: 'treat', targetPatientId: 2, description: "Use Própolis da Colmeia para tratar Paciente 2 (Infecção)." }, { id: 'p1_m6', type: 'treat', targetPatientId: 3, description: "Use Pólen da Colmeia para tratar Paciente 3 (Imunidade)." }, { id: 'p1_m7', type: 'collect_special', target: 'venom', goal: 1, description: `Colete 1 dose de ☠️ Veneno da Flor Roxa (${venomSourcePosition.x.toFixed(0)}, ${venomSourcePosition.z.toFixed(0)}) e deposite.` }, { id: 'p1_m8', type: 'treat', targetPatientId: 5, description: "Use Veneno da Colmeia para tratar Paciente 5 (Dor Crônica)." }, { id: 'p1_m9', type: 'collect', target: 'geleia', goal: 1, description: "Colete 1 Geleia Real (👑 Geleia Real) e deposite." }, { id: 'p1_m10', type: 'treat', targetPatientId: 4, description: "Use Geleia Real da Colmeia para tratar Paciente 4 (Envelhecimento)." }, { id: 'p1_complete', type: 'complete_phase1', description: "Fase 1 concluída! Aproxime-se do Apicultor para continuar." } ];
-        const phase2Missions = [ /* ... same as before with increased goals ... */ { id: 'p2_m1', type: 'collect', target: 'water', goal: 5, description: "Colete 5 💧 Água sobrevoando o lago e deposite." }, { id: 'p2_m2', type: 'treat', targetPatientId: 6, description: "Use Água da Colmeia para tratar Paciente 6 (Desidratação)." }, { id: 'p2_m3', type: 'craft', requires: { venom: 1, water: 3 }, yields: 'veneno_homeopatico', goal: 1, description: "Colete ☠️ Veneno (1) e 💧 Água (3). Deposite para criar 🧪 Veneno Homeopático na colmeia." }, { id: 'p2_m4', type: 'treat', targetPatientId: 7, description: "Use 🧪 Veneno Homeopático da Colmeia para tratar Paciente 7 (Alergia Leve)." }, { id: 'p2_m5', type: 'collect', target: 'propolis', goal: 6, description: "Colete 6 🪵 Própolis e deposite." }, { id: 'p2_m6', type: 'treat', targetPatientId: 8, description: "Use Própolis da Colmeia para tratar Paciente 8 (Irritação na Pele)." }, { id: 'p2_m7', type: 'collect', target: 'mel', goal: 4, description: "Colete 4 🍯 Mel e deposite." }, { id: 'p2_m8', type: 'collect', target: 'polen', goal: 5, description: "Colete 5 🌼 Pólen e deposite." }, { id: 'p2_m9', type: 'treat', targetPatientId: 9, description: "Use Mel ou Pólen da Colmeia para tratar Paciente 9 (Problema Digestivo)." }, { id: 'p2_m10', type: 'collect', target: 'geleia', goal: 2, description: "Colete 2 👑 Geleia Real e deposite." }, { id: 'p2_m11', type: 'treat', targetPatientId: 10, description: "Use Geleia Real da Colmeia para tratar Paciente 10 (Fadiga)." }, { id: 'p2_complete', type: 'complete_phase2', description: "Fase 2 concluída! Aproxime-se do Apicultor para a próxima etapa." } ];
-        const phase3Missions = [ /* ... same as before ... */ { id: 'p3_m1', type: 'build_nursery', goal: 1, description: "Construa o Berçário: Deposite recursos para criar 6 🧱 Cera (Req p/ Cera: 3🍯+3💧+1🌼)." }, { id: 'p3_m2', type: 'treat', targetPatientId: 11, description: "Use 🧱 Cera da Colmeia para tratar Paciente 11 (Larva Desnutrida)." }, { id: 'p3_m3', type: 'treat', targetPatientId: 12, description: "Use 🧱 Cera da Colmeia para tratar Paciente 12 (Célula Danificada)." }, { id: 'p3_m4', type: 'treat', targetPatientId: 13, description: "Use 👑 Geleia Real da Colmeia para tratar Paciente 13 (Desenvolvimento Lento)." }, { id: 'p3_m5', type: 'treat', targetPatientId: 14, description: "Use 🪵 Própolis da Colmeia para tratar Paciente 14 (Proteção da Cria)." }, { id: 'p3_m6', type: 'treat', targetPatientId: 15, description: "Use 🍯 Mel da Colmeia para tratar Paciente 15 (Energia para Crescimento)." }, { id: 'p3_complete', type: 'complete_phase3', description: "Fase 3 concluída! O Berçário está funcional! Fale com o Apicultor." } ];
+        // --- Plant Data & Groups ---
+        const plantGroups = { /* ... unchanged ... */
+            calmantes: { name: 'Calmantes', position: new THREE.Vector3(-8, 0, -8), color: 0xba68c8 },
+            digestivas: { name: 'Digestivas', position: new THREE.Vector3(8, 0, -8), color: 0xcddc39 },
+            respiratorias: { name: 'Respiratórias', position: new THREE.Vector3(-8, 0, 8), color: 0x4db6ac },
+            cicatrizantes: { name: 'Cicatrizantes / Pele', position: new THREE.Vector3(8, 0, 8), color: 0xfdd835 },
+            citricos_energia: { name: 'Cítricos / Energia', position: new THREE.Vector3(0, 0, -12), color: 0xFF9800 },
+            outros: { name: 'Purificantes / Outros', position: new THREE.Vector3(0, 0, 12), color: 0x8BC34A }
+        };
+        const plantasData = [ /* ... unchanged ... */
+            // Calmantes
+            { id: 'camomila', name: 'Camomila', group: 'calmantes', color: 0xffeb3b, desc: 'Calmante natural, auxilia no sono e digestão. Usada para ansiedade, insônia e problemas digestivos leves. Chá é a forma mais comum.', link: '#camomila-info', shape: 'flower', info_viewed: false },
+            { id: 'lavanda', name: 'Lavanda', group: 'calmantes', color: 0xba68c8, desc: '💜 Aroma floral, suave e reconfortante. Reduz ansiedade e insônia. Óleo essencial para relaxamento.', link: '#lavanda-info', shape: 'tall_flower', info_viewed: false },
+            { id: 'capim-limao', name: 'Capim-Limão', group: 'calmantes', color: 0xa5d6a7, desc: '🍋 Aroma suave, cítrico e relaxante. Calmante, alivia ansiedade e insônia. Traz equilíbrio.', link: '#capimlimao-info', shape: 'bush', info_viewed: false },
+            { id: 'passiflora', name: 'Passiflora (Maracujá)', group: 'calmantes', color: 0x8e44ad, desc: 'Auxilia no alívio de ansiedade, agitação e insônia. Comum em fitoterápicos.', link: '#passiflora-info', shape:'vine_flower', info_viewed: false},
+             // Digestivas
+            { id: 'hortela-pimenta', name: 'Hortelã-Pimenta', group: 'digestivas', color: 0x4caf50, desc: '🌿 Aroma fresco, mentolado e revigorante. Alivia problemas digestivos. Óleo essencial usado para clareza mental e foco.', link: '#hortela-info', shape: 'bush', info_viewed: false },
+            { id: 'boldo', name: 'Boldo', group: 'digestivas', color: 0x558b2f, desc: 'Auxilia na digestão e no funcionamento do fígado. Usado após excessos alimentares.', link: '#boldo-info', shape: 'large_leaf_bush', info_viewed: false },
+            { id: 'erva-doce', name: 'Erva-doce (Funcho)', group: 'digestivas', color: 0xcddc39, desc: 'Ajuda na digestão, reduz cólicas e gases.', link: '#ervadoce-info', shape: 'tall_thin', info_viewed: false },
+            { id: 'espinheira-santa', name: 'Espinheira Santa', group: 'digestivas', color: 0x689f38, desc: 'Indicada para má digestão, gastrite e úlcera gástrica (coadjuvante).', link: '#espinheira-info', shape:'spiky_bush', info_viewed: false},
+            { id: 'alcachofra', name: 'Alcachofra', group: 'digestivas', color: 0x795548, desc: 'Auxilia na digestão de gorduras e em problemas dispépticos.', link: '#alcachofra-info', shape:'artichoke_like', info_viewed: false},
+              // Respiratórias
+            { id: 'guaco', name: 'Guaco', group: 'respiratorias', color: 0x2e7d32, desc: 'Expectorante e broncodilatador natural, indicado para tosses e bronquites.', link: '#guaco-info', shape: 'vine_leaf', info_viewed: false },
+            { id: 'eucalipto', name: 'Eucalipto', group: 'respiratorias', color: 0x4db6ac, desc: 'Descongestionante, utilizado em inalações para problemas respiratórios.', link: '#eucalipto-info', shape: 'tall_tree_like', info_viewed: false },
+            { id: 'malva', name: 'Malva', group: 'respiratorias', color: 0x9575cd, desc: 'Ação emoliente, usada para aliviar inflamações na boca, garganta e tosse seca.', link: '#malva-info', shape: 'flower_pink', info_viewed: false },
+                // Cicatrizantes / Pele
+            { id: 'babosa', name: 'Babosa (Aloe vera)', group: 'cicatrizantes', color: 0x81d4fa, desc: 'Gel usado topicamente em queimaduras leves, cortes e para hidratação.', link: '#babosa-info', shape: 'aloe', info_viewed: false },
+            { id: 'calendula', name: 'Calêndula', group: 'cicatrizantes', color: 0xfdd835, desc: 'Cicatrizante e anti-inflamatória potente, usada topicamente para pele.', link: '#calendula-info', shape: 'flower_orange', info_viewed: false },
+            { id: 'arnica', name: 'Arnica (Arnica montana)', group: 'cicatrizantes', color: 0xffc107, desc: 'Anti-inflamatória, usada topicamente para contusões e dores musculares. *Não ingerir*.', link: '#arnica-info', shape: 'flower_yellow', info_viewed: false },
+            { id: 'melaleuca', name: 'Melaleuca (Tea Tree)', group: 'cicatrizantes', color: 0x80cbc4, desc: '🌳 Aroma fresco, herbáceo e purificante. Antisséptico natural, cuidado para pele e ambiente.', link: '#melaleuca-info', shape: 'tall_thin_bushy', info_viewed: false },
+                // Cítricos / Energia
+            { id: 'laranja-doce', name: 'Laranja Doce', group: 'citricos_energia', color: 0xFFB74D, desc: '🍊 Aroma doce, cítrico e envolvente. Traz energia, alegria e leveza.', link: '#laranja-info', shape: 'bush_round_orange', info_viewed: false },
+            { id: 'alecrim', name: 'Alecrim', group: 'citricos_energia', color: 0x8bc34a, desc: '🌱 Aroma herbáceo, estimulante. Melhora memória e concentração. Renovação e disposição.', link: '#alecrim-info', shape: 'rosemary', info_viewed: false },
+                // Purificantes / Outros
+            { id: 'alfavaca', name: 'Alfavaca (Manjericão)', group: 'outros', color: 0x7cb342, desc: 'Antioxidante, auxilia na digestão e sistema imunológico. Propriedades calmantes leves.', link: '#alfavaca-info', shape: 'bush_round', info_viewed: false },
+            { id: 'salvia', name: 'Sálvia', group: 'outros', color: 0x6d4c41, desc: 'Antisséptica e anti-inflamatória, usada em gargarejos e para equilibrar hormônios.', link: '#salvia-info', shape: 'bush_grey', info_viewed: false },
+            { id: 'garra-do-diabo', name: 'Garra do Diabo', group: 'outros', color: 0xb71c1c, desc: 'Alívio de dores articulares moderadas e dor lombar.', link: '#garra-info', shape:'low_spiky', info_viewed: false},
+        ];
 
-        // --- Patients (Phase 1, 2, 3 Definitions) ---
-        const phase1Patients = [ /* ... same as before ... */ { id: 1, caso: "Ferida grave", produto: "mel", position: new THREE.Vector3(-4, 0.25, -8) }, { id: 2, caso: "Infecção", produto: "propolis", position: new THREE.Vector3(-2, 0.25, -8) }, { id: 3, caso: "Imunidade", produto: "polen", position: new THREE.Vector3(0, 0.25, -8) }, { id: 4, caso: "Envelhecimento", produto: "geleia", position: new THREE.Vector3(2, 0.25, -8) }, { id: 5, caso: "Dor Crônica", produto: "venom", position: new THREE.Vector3(4, 0.25, -8) } ];
-        const phase2Patients = [ /* ... same as before ... */ { id: 6, caso: "Desidratação", produto: "water", position: new THREE.Vector3(10, 0.25, 6) }, { id: 7, caso: "Alergia Leve", produto: "veneno_homeopatico", position: new THREE.Vector3(12, 0.25, 4) }, { id: 8, caso: "Irritação Pele", produto: "propolis", position: new THREE.Vector3(14, 0.25, 8) }, { id: 9, caso: "Digestão", produto: ['mel', 'polen'], position: new THREE.Vector3(-10, 0.25, -10) }, { id: 10, caso: "Fadiga", produto: "geleia", position: new THREE.Vector3(-8, 0.25, -12) } ];
-        const phase3Patients = [ /* ... same as before ... */ { id: 11, caso: "Larva Desnutrida", produto: "cera", position: new THREE.Vector3(1.5, 0.25, 1.5) }, { id: 12, caso: "Célula Danificada", produto: "cera", position: new THREE.Vector3(-1.5, 0.25, 1.5) }, { id: 13, caso: "Desenvolvimento Lento", produto: "geleia", position: new THREE.Vector3(0, 0.25, 3) }, { id: 14, caso: "Proteção da Cria", produto: "propolis", position: new THREE.Vector3(1.5, 0.25, -1.5) }, { id: 15, caso: "Energia Crescimento", produto: "mel", position: new THREE.Vector3(-1.5, 0.25, -1.5) } ];
+        // NEW: Wood Data
+        const woodData = [
+             { id: 'wood_pile_1', name: 'Pilha de Lenha', desc: 'Lenha seca, boa para a fogueira.', color: 0x8D6E63, position: new THREE.Vector3(10, 0, 10), info_viewed: false },
+             { id: 'wood_pile_2', name: 'Pilha de Lenha', desc: 'Lenha seca, boa para a fogueira.', color: 0x8D6E63, position: new THREE.Vector3(-10, 0, 10), info_viewed: false },
+             { id: 'wood_pile_3', name: 'Pilha de Lenha', desc: 'Lenha seca, boa para a fogueira.', color: 0x8D6E63, position: new THREE.Vector3(10, 0, -10), info_viewed: false },
+             { id: 'wood_pile_4', name: 'Pilha de Lenha', desc: 'Lenha seca, boa para a fogueira.', color: 0x8D6E63, position: new THREE.Vector3(-10, 0, -10), info_viewed: false },
+        ];
 
-        // --- NPC Definition --- (Unchanged)
-        const npcGeo = new THREE.CylinderGeometry(0.3, 0.3, 1.2, 12); const npcMat = new THREE.MeshStandardMaterial({ color: 0xaaaaaa }); const apicultorNPC = new THREE.Mesh(npcGeo, npcMat); apicultorNPC.position.set(2, 0.6, 2); apicultorNPC.castShadow = true; apicultorNPC.userData = { type: 'npc', id: 'apicultor', name: 'Apicultor Mestre', icon: '👴', currentDialogueId: 'welcome' }; scene.add(apicultorNPC);
+        // --- NPC Data ---
+        const npcsData = [ /* ... unchanged ... */
+            { id: 'npc_ana', name: 'Ana', position: new THREE.Vector3(-6, 0, -6), color: 0xffa07a, condition: 'Ansiedade e dificuldade para dormir', requiredItemType: 'phyto', requiredItemId: 'cha_camomila', dialogue: { initial: "Olá! Ultimamente ando tão ansiosa... Mal consigo dormir. 😔", reminder: "Você conseguiu encontrar algo que possa me ajudar a relaxar?", thanks: "Nossa, este chá parece tão calmante! Muito obrigada! Sinto-me melhor só de sentir o aroma. 🙏" } },
+            { id: 'npc_carlos', name: 'Carlos', position: new THREE.Vector3(6, 0, -6), color: 0xadd8e6, condition: 'Indigestão frequente após as refeições', requiredItemType: 'phyto', requiredItemId: 'cha_hortela', dialogue: { initial: "Oi! Minha digestão não anda nada bem ultimamente. Fico com aquela sensação de peso...", reminder: "Alguma novidade sobre algo para ajudar minha digestão?", thanks: "Ah, hortelã! Dizem que é ótimo. Vou experimentar. Muito obrigado pela ajuda! 👍" } },
+            { id: 'npc_julia', name: 'Julia', position: new THREE.Vector3(-1, 0, -10), color: 0x90ee90, condition: 'Sentindo-se desanimada e sem energia', requiredItemType: 'oil', requiredItemId: 'oleo_laranja_doce', dialogue: { initial: "Sinto-me tão sem energia ultimamente... precisava de algo para me animar um pouco. ☀️", reminder: "Encontrou algo que possa me dar um 'up'?", thanks: "Uau, óleo de Laranja Doce! O cheiro é maravilhoso, já me sinto mais alegre! Obrigada! 😄" } },
+            { id: 'npc_rafael', name: 'Rafael', position: new THREE.Vector3(-5, 0, 5), color: 0xd8bfd8, condition: 'Precisando de foco para estudar', requiredItemType: 'oil', requiredItemId: 'oleo_alecrim', dialogue: { initial: "Tenho uma prova importante, mas não consigo me concentrar de jeito nenhum! 📚", reminder: "Ainda preciso daquela ajuda para focar nos estudos...", thanks: "Óleo de Alecrim? Ouvi falar que ajuda na concentração! Perfeito, muito obrigado! 🧠" } }
+        ];
 
-        // --- Dialogue System ---
-        const dialogBox = document.getElementById('dialog-box'); const npcIconEl = document.getElementById('npc-icon'); const npcNameEl = document.getElementById('npc-name'); const dialogTextEl = document.getElementById('dialog-text'); const dialogOptionsEl = document.getElementById('dialog-options'); let currentNpc = null;
-        const dialogData = { /* ... same as V4.4 ... */ apicultor: { welcome: { text: "Olá, pequena abelha! O jardim precisa de cuidados e os pacientes esperam. Siga as instruções no painel de Missões Atuais para nos ajudar." }, busy_phase1: { text: "Continue seu trabalho na Fase 1, abelha operária! Siga as missões no painel." }, phase1_complete_prompt: { text: "Incrível! Você completou todas as tarefas da Fase 1 e ganhou este Troféu Apiterápico Dourado! 🏆 Prepare-se para novos desafios!" }, busy_phase2: { text: "Excelente! Continue com as novas missões da Fase 2. Lembre-se da água e das novas receitas!" }, phase2_complete_prompt: { text: "Magnífico trabalho na Fase 2! Para expandir a colmeia, precisamos construir um Berçário. Isso exigirá um novo material: Cera! Colete os ingredientes e deposite-os." }, busy_phase3: { text: "O Berçário precisa de cuidados! Continue com as missões da Fase 3, focando nas crias e na manutenção com Cera." }, phase3_complete_final: { text: "Fantástico! O Berçário está estabelecido e funcional graças a você! A colmeia pode agora crescer forte e saudável. Seu trabalho aqui foi exemplar!" } } };
-        function showDialog(npc) { /* ... Same 'Ok' button logic ... */ if (!npc || !npc.userData || !npc.userData.id || !dialogBox) return; const npcId = npc.userData.id; const dialogueId = npc.userData.currentDialogueId; const dialogueNode = dialogData[npcId]?.[dialogueId]; if (!dialogueNode) { console.warn(`Dialogue node not found for NPC ${npcId}, ID ${dialogueId}. Hiding.`); hideDialog(); return; } const isVisible = dialogBox.classList.contains('visible'); const needsUpdate = !isVisible || currentNpc !== npc || npc.userData.currentDisplayedDialogueId !== dialogueId; if (needsUpdate) { currentNpc = npc; npcIconEl.textContent = npc.userData.icon || '❔'; npcNameEl.textContent = npc.userData.name || 'NPC'; dialogTextEl.textContent = dialogueNode.text; dialogOptionsEl.innerHTML = ''; const okButton = document.createElement('button'); okButton.className = 'dialog-option'; okButton.textContent = 'Ok.'; okButton.onclick = () => handleDialogOption(dialogueId, npc); dialogOptionsEl.appendChild(okButton); npc.userData.currentDisplayedDialogueId = dialogueId; if (!isVisible) { dialogBox.classList.add('visible'); } } }
-        function hideDialog() { /* ... Unchanged ... */ if (dialogBox && dialogBox.classList.contains('visible')) { dialogBox.classList.remove('visible'); if (currentNpc && currentNpc.userData) { delete currentNpc.userData.currentDisplayedDialogueId; } currentNpc = null; } }
+        // --- Game State ---
+        const gameState = {
+            currentMissionIndex: 0,
+            knowledgeBase: {},
+            craftedItems: {},
+            extractedOils: {},
+            inventory: { water: 0, wood: 0 }, // Added wood to inventory
+            benchInventory: {}, // Bench only holds plants and water (if deposited, though unlikely)
+            npcStates: {},
+            canCollectPlant: false,
+            canCollectWood: false, // NEW: Ability to collect wood
+            canCraftPhyto: false,
+            canExtractOil: false,
+            gameComplete: false,
+            isWaterResourceAvailable: false,
+            waterResourceRespawnTimer: WATER_RESOURCE_RESPAWN_TIME
+        };
 
-        // REVISED: handleDialogOption triggers phase transitions based on awaiting flag and dialog ID
-        function handleDialogOption(closedDialogueId, npc) {
-             hideDialog();
-             if (awaitingPhaseTransitionTalk) {
-                 if (closedDialogueId === 'phase1_complete_prompt' && currentPhase === 1) {
-                     startPhase2();
-                 } else if (closedDialogueId === 'phase2_complete_prompt' && currentPhase === 2) {
-                     startPhase3();
-                 }
-                  // Add else if for phase 3 -> 4 transition if needed
-             }
+        // --- Oil IDs & Recipes ---
+        const OIL_LAVENDER = 'oleo_lavanda'; const OIL_PEPPERMINT = 'oleo_hortela_pimenta'; const OIL_EUCALYPTUS = 'oleo_eucalipto'; const OIL_ROSEMARY = 'oleo_alecrim'; const OIL_LEMONGRASS = 'oleo_capim_limao'; const OIL_ORANGE = 'oleo_laranja_doce'; const OIL_TEA_TREE = 'oleo_melaleuca';
+        const recipes = { /* ... unchanged ... */
+            cha_camomila: { name: "Chá de Camomila", ingredients: { camomila: 2, water: 1 }, type: 'phyto' },
+            cha_hortela: { name: "Chá de Hortelã-Pimenta", ingredients: { 'hortela-pimenta': 2, water: 1 }, type: 'phyto' },
+            cha_capim_limao: { name: "Chá de Capim-Limão", ingredients: { 'capim-limao': 2, water: 1 }, type: 'phyto' },
+        };
+
+        // --- Mission Helper ---
+        function getOilDisplayName(oilId) { /* ... unchanged ... */ switch(oilId) { case OIL_LAVENDER: return 'Lavanda'; case OIL_PEPPERMINT: return 'Hortelã-Pimenta'; case OIL_EUCALYPTUS: return 'Eucalipto'; case OIL_ROSEMARY: return 'Alecrim'; case OIL_LEMONGRASS: return 'Capim-Limão'; case OIL_ORANGE: return 'Laranja Doce'; case OIL_TEA_TREE: return 'Melaleuca (Tea Tree)'; default: return oilId; } }
+        function getRecipeDisplayName(recipeId) { return recipes[recipeId]?.name || recipeId; }
+        function getItemDisplayName(itemId) { /* ... getItemDisplayName (Added wood) ... */
+            if (itemId === 'water') return 'Água';
+            if (itemId === 'wood') return 'Lenha'; // NEW
+            const plant = plantasData.find(p => p.id === itemId); if (plant) return plant.name;
+            const recipe = recipes[itemId]; if (recipe) return recipe.name;
+            const oilName = getOilDisplayName(itemId); if (oilName !== itemId) return `Óleo de ${oilName}`;
+            return itemId;
         }
 
-        // --- Phase Transition Functions (Revised) ---
-        function startPhase2() {
-             console.log("Starting Phase 2!");
-             currentPhase = 2;
-             missions = phase2Missions;
-             pacientes = [...phase2Patients]; // Use copy
-             currentMissionIndex = 0;
-             phaseComplete = false;
-             awaitingPhaseTransitionTalk = false;
-             hasReceivedTrophy = true; // Grant trophy now
-             document.getElementById('trophy-display').textContent = "🏆 Troféu Apiterápico Ganho!";
-             apicultorNPC.userData.currentDialogueId = 'busy_phase2'; // Set busy state
 
-             clearOldResources(); // Remove P1 resources
-             spawnPhase2Resources(); // Spawn P2 resources
-             spawnInitialWaterSources(); // Ensure water exists
+        // --- Missions (Updated for Firepit/Wood) ---
+        const missions = [
+            // Introduction & Basic Skills
+            { id: 'm01_intro', type: 'message', description: "Bem-vindo! Explore o jardim. Use [E] para ver informações das plantas ou falar com pessoas." },
+            { id: 'm02_unlock_collect_plant', type: 'unlock_feature', feature: 'collect_plant', description: "Você sente que já pode [coletar plantas]. Aproxime-se e use [F]." },
+            { id: 'm03_collect_new_water', type: 'collect_or_deposit', item: 'water', amount: WATER_COLLECT_AMOUNT, description: `Colete o [Recurso de Água 💧] que aparece na fonte (passe perto em visão pessoal). A água é essencial para as plantas renascerem!` },
+            { id: 'm04_find_bench', type: 'find_object', targetObjectId: 'crafting_bench', description: "Localize a [Bancada de Preparo ⚗️]. Ela será essencial para chás." },
+            { id: 'm05_unlock_deposit', type: 'unlock_feature', feature: 'deposit', description: "Na bancada, você pode [depositar plantas [F]] para liberar espaço no seu inventário (Máx: "+MAX_PLAYER_PLANT_INVENTORY+")." },
+            { id: 'm06_unlock_phyto', type: 'unlock_feature', feature: 'phyto', description: "Você aprendeu o básico! Agora pode [preparar chás [G]] na bancada usando os itens depositados." },
+            { id: 'm07_unlock_collect_wood', type: 'unlock_feature', feature: 'collect_wood', description: "Você percebeu pilhas de [lenha 🪵] pelo jardim. Colete-as [F]. Serão úteis depois." }, // NEW: Unlock wood collection
 
-             setPhaseIndicator();
-             updateStatus("Fase 2 iniciada! Novos desafios aguardam.", "success");
-             updateInfoPanel();
-             checkMissionCompletion(); // Check first mission of new phase
-         }
+            // Ana's Mission (Anxiety/Sleep - Camomile Tea)
+            { id: 'p01_find_ana', type: 'find_npc', targetNpcId: 'npc_ana', description: "Parece que [Ana], perto das plantas calmantes, precisa de ajuda. Fale com ela [E]." },
+            { id: 'p02_ana_needs_tea', type: 'npc_dialogue', targetNpcId: 'npc_ana', requiredDialogue: 'initial', description: "Ana precisa de ajuda para [ansiedade/sono]. Um [Chá de Camomila 🍵] pode ajudar." },
+            { id: 'p03_collect_camomila', type: 'collect_or_deposit', item: 'camomila', amount: 2, description: "Colete ou tenha na bancada [2 Camomilas 🌼] para o chá de Ana." },
+            { id: 'p04_collect_water_ana', type: 'collect_or_deposit', item: 'water', amount: 1, description: "Obtenha [1 Água 💧] para o chá de Ana (colete o recurso na fonte)." },
+            { id: 'p05_craft_cha_camomila', type: 'craft_item', recipeId: 'cha_camomila', description: "Prepare o [Chá de Camomila 🍵] na bancada [G] para Ana." },
+            { id: 'p06_deliver_tea_ana', type: 'deliver_item_to_npc', targetNpcId: 'npc_ana', requiredItemType: 'phyto', requiredItemId: 'cha_camomila', description: "Entregue o [Chá de Camomila 🍵] para [Ana] [E]." },
 
-         function startPhase3() {
-             console.log("Starting Phase 3!");
-             currentPhase = 3;
-             missions = phase3Missions;
-             pacientes = [...phase3Patients]; // Use copy
-             currentMissionIndex = 0;
-             phaseComplete = false;
-             awaitingPhaseTransitionTalk = false;
-             // Trophy already awarded
-             apicultorNPC.userData.currentDialogueId = 'busy_phase3'; // Set busy state
+             // Carlos's Mission (Digestion - Peppermint Tea)
+            { id: 'p07_find_carlos', type: 'find_npc', targetNpcId: 'npc_carlos', description: "Próximo às plantas digestivas, [Carlos] parece desconfortável. Fale com ele [E]." },
+            { id: 'p08_carlos_needs_tea', type: 'npc_dialogue', targetNpcId: 'npc_carlos', requiredDialogue: 'initial', description: "Carlos está com [indigestão]. Um [Chá de Hortelã-Pimenta 🍵] pode ser útil." },
+            { id: 'p09_collect_hortela', type: 'collect_or_deposit', item: 'hortela-pimenta', amount: 2, description: "Consiga [2 Hortelãs-Pimenta 🌱] para o chá de Carlos." },
+            { id: 'p10_collect_water_carlos', type: 'collect_or_deposit', item: 'water', amount: 1, description: "Obtenha [1 Água 💧] para o chá de Carlos." },
+            { id: 'p11_craft_cha_hortela', type: 'craft_item', recipeId: 'cha_hortela', description: "Faça o [Chá de Hortelã-Pimenta 🍵] na bancada [G] para Carlos." },
+            { id: 'p12_deliver_tea_carlos', type: 'deliver_item_to_npc', targetNpcId: 'npc_carlos', requiredItemType: 'phyto', requiredItemId: 'cha_hortela', description: "Entregue o [Chá de Hortelã-Pimenta 🍵] para [Carlos] [E]." },
 
-             // Keep Phase 2 resources, don't clear. Ensure water still exists/respawns.
-             // spawnInitialWaterSources(); // Optionally respawn water if needed
+             // Unlock Oils & Firepit
+             { id: 'm13_find_firepit', type: 'find_object', targetObjectId: 'firepit', description: "Você encontrou uma [Fogueira 🔥]. Parece ser usada para processos mais complexos." }, // NEW: Find firepit
+             { id: 'm14_unlock_oils', type: 'unlock_feature', feature: 'oils', description: "Você dominou os chás! Agora pode [extrair Óleos Essenciais [G]] na Fogueira (requer plantas da bancada e lenha do inventário)." }, // MODIFIED: Unlock oils at firepit
 
-             setPhaseIndicator();
-             updateStatus("Fase 3 iniciada! Construa e cuide do Berçário!", "success");
-             updateInfoPanel();
-             checkMissionCompletion(); // Check first mission (build nursery)
-         }
+             // Julia's Mission (Energy - Orange Oil)
+            { id: 'p15_find_julia', type: 'find_npc', targetNpcId: 'npc_julia', description: "[Julia], perto das plantas cítricas, parece desanimada. Fale com ela [E]." },
+            { id: 'p16_julia_needs_oil', type: 'npc_dialogue', targetNpcId: 'npc_julia', requiredDialogue: 'initial', description: "Julia precisa de [energia e alegria]. O [Óleo Essencial de Laranja Doce 💧] pode ajudar." },
+            { id: 'p17_collect_laranja', type: 'collect_or_deposit', item: 'laranja-doce', amount: 5, description: "Consiga [5 Laranjas Doces 🍊] (na bancada) para o óleo de Julia." },
+            { id: 'p18_collect_wood_julia', type: 'collect_or_deposit', item: 'wood', amount: WOOD_FOR_OIL, description: `Colete [${WOOD_FOR_OIL} Lenhas 🪵] para usar na fogueira.` }, // NEW: Collect wood
+            { id: 'p19_extract_orange', type: 'extract_oil', targetOilId: OIL_ORANGE, requiresPlantIds: ['laranja-doce'], plantAmount: 5, requiresWoodAmount: WOOD_FOR_OIL, description: `Use a [Fogueira 🔥 [G]] para extrair o Óleo Essencial de [${getOilDisplayName(OIL_ORANGE)}] (requer lenha e plantas na bancada).` }, // MODIFIED: Extract at firepit
+            { id: 'p20_deliver_oil_julia', type: 'deliver_item_to_npc', targetNpcId: 'npc_julia', requiredItemType: 'oil', requiredItemId: OIL_ORANGE, description: `Entregue o [Óleo de ${getOilDisplayName(OIL_ORANGE)}] para [Julia] [E].` },
 
-        // --- UI Update Functions ---
-        function updateStatus(message, type = 'info') { /* ... Unchanged ... */ statusMessageEl.textContent = message; statusMessageEl.classList.remove('status-critical', 'highlight'); let color = '#aaaaff'; if (type === 'success') color = '#a9ffaa'; else if (type === 'error') color = '#ffaaaa'; else if (type === 'warning') color = '#ffffaa'; else if (type === 'critical') { color = '#ffaaaa'; statusMessageEl.classList.add('status-critical'); } statusMessageEl.style.color = color; if (type !== 'critical') { setTimeout(() => { if (statusMessageEl.textContent === message) { statusMessageEl.textContent = "Use W/A/S/D/Setas, Espaço(Subir)/Shift(Descer). 'E' na Colmeia. Aproxime-se do Apicultor para orientações."; statusMessageEl.style.color = '#aaaaff'; statusMessageEl.classList.remove('status-critical'); } }, 6000); } }
-        function updatePacientesUI() { /* ... Unchanged ... */ document.getElementById('pacientes').innerHTML = pacientes.map(p => { let requiredText = ''; const product = getRequiredProductForPatient(p.id); if (product) { if (Array.isArray(product)) { requiredText = `(Req: ${product.map(pr => `${getEmoji(pr)} ${capitalize(pr)}`).join(' ou ')})`; } else { requiredText = `(Req: ${getEmoji(product)} ${capitalize(product)})`; } } const isTarget = !phaseComplete && currentMissionIndex < missions.length && missions[currentMissionIndex].type === 'treat' && missions[currentMissionIndex].targetPatientId === p.id; return `<div id="paciente-${p.id}" class="${isTarget ? 'text-warning font-weight-bold' : ''}">🧍 Paciente ${p.id}: ${p.caso} ${requiredText}</div>`; }).join(''); }
-        function getRequiredProductForPatient(patientId) { const patient = pacientes.find(p => p.id === patientId); return patient ? patient.produto : null;}
-        function addPatientMarkers() { /* ... Unchanged ... */ patientMarkers.forEach(marker=>scene.remove(marker)); patientMarkers.length=0; pacientes.forEach(p=>{ const isTarget=!phaseComplete && currentMissionIndex < missions.length && missions[currentMissionIndex].type==='treat' && missions[currentMissionIndex].targetPatientId===p.id; let color=0x007bff; let emissiveColor=0x111111; if(isTarget){color=0xffc107; emissiveColor=color;} const product = getRequiredProductForPatient(p.id); let primaryProduct = Array.isArray(product) ? product[0] : product; if(primaryProduct==='venom' || primaryProduct === 'veneno_homeopatico'){color=0xcc00cc; if(isTarget)emissiveColor=color;} else if (primaryProduct === 'water') { color = 0x03a9f4; if(isTarget)emissiveColor=color; } else if (primaryProduct === 'cera') { color = 0xFFA500; if(isTarget)emissiveColor=color; } const geometry=new THREE.SphereGeometry(0.2,16,12); const material=new THREE.MeshStandardMaterial({color:color,emissive:emissiveColor}); const marker=new THREE.Mesh(geometry,material); marker.position.copy(p.position); marker.userData.patientId=p.id; marker.castShadow=true; scene.add(marker); patientMarkers.push(marker);});}
+             // Rafael's Mission (Focus - Rosemary Oil)
+            { id: 'p21_find_rafael', type: 'find_npc', targetNpcId: 'npc_rafael', description: "[Rafael] está perto da bancada, tentando estudar. Fale com ele [E]." },
+            { id: 'p22_rafael_needs_oil', type: 'npc_dialogue', targetNpcId: 'npc_rafael', requiredDialogue: 'initial', description: "Rafael precisa de [foco para estudar]. O [Óleo Essencial de Alecrim 💧] é indicado." },
+            { id: 'p23_collect_alecrim', type: 'collect_or_deposit', item: 'alecrim', amount: 5, description: "Consiga [5 Alecrins 🌱] (na bancada) para o óleo de Rafael." },
+            { id: 'p24_collect_wood_rafael', type: 'collect_or_deposit', item: 'wood', amount: WOOD_FOR_OIL, description: `Colete mais [${WOOD_FOR_OIL} Lenhas 🪵] para a fogueira.` }, // NEW: Collect wood
+            { id: 'p25_extract_rosemary', type: 'extract_oil', targetOilId: OIL_ROSEMARY, requiresPlantIds: ['alecrim'], plantAmount: 5, requiresWoodAmount: WOOD_FOR_OIL, description: `Use a [Fogueira 🔥 [G]] para extrair o Óleo Essencial de [${getOilDisplayName(OIL_ROSEMARY)}].` }, // MODIFIED: Extract at firepit
+            { id: 'p26_deliver_oil_rafael', type: 'deliver_item_to_npc', targetNpcId: 'npc_rafael', requiredItemType: 'oil', requiredItemId: OIL_ROSEMARY, description: `Entregue o [Óleo de ${getOilDisplayName(OIL_ROSEMARY)}] para [Rafael] [E].` },
 
-        // REVISED: updateInfoPanel uses currentPhase for styling
-        function updateInfoPanel() {
-            document.getElementById('carrying-capacity').textContent = `${Object.values(currentlyCarrying).reduce((a, b) => a + b, 0)} / ${carryingCapacity}`;
-            let carryingHTML = Object.entries(currentlyCarrying).filter(([_, v]) => v > 0).map(([key, value]) => `<li class="${getClassForResource(key, 'carrying')}"> ${getEmoji(key)} ${capitalize(key)}: ${value}</li>`).join('');
-            document.getElementById('carrying-now').innerHTML = carryingHTML || `<li>(Vazio)</li>`;
-            let hiveHTML = Object.entries(hiveStorage).map(([key, value]) => `<li class="${getClassForResource(key, 'hive')}"> ${getEmoji(key)} ${capitalize(key)}: ${value}</li>`).join('');
-            document.getElementById('hive-storage').innerHTML = hiveHTML;
+            // Conclusion
+            { id: 'm27_final', type: 'message', description: "Parabéns, Mestre Herbalista! Você ajudou a todos com seu conhecimento de plantas medicinais e óleos essenciais!" },
+        ];
 
-            const missionHeaderEl = document.getElementById('current-mission');
-            let missionClass = 'mission-header'; // Base class
-            // Add phase-specific class
-            if (currentPhase === 1) missionClass += ' mission-phase1';
-            else if (currentPhase === 2) missionClass += ' mission-phase2';
-            else if (currentPhase === 3) missionClass += ' mission-phase3';
+        // --- Object Creation ---
+        const plantMeshes = [];
+        const woodMeshes = []; // NEW: Array for wood meshes
+        const npcMeshes = [];
+        const interactiveObjects = []; // Plants, Wood, Bench, Firepit, NPCs, Bee (Water Source VISUAL ONLY)
+        let craftingBenchMesh = null;
+        let firepitMesh = null; // NEW: Firepit mesh reference
+        let waterSourceMesh = null; // Still used for position reference
+        let waterResourceMesh = null; // The collectible sphere
+        let bee = null;
+        const plantLabelsContainer = document.getElementById('plant-labels-container');
+        const plantLabelElements = {}; // Also used for wood labels
+        const inventoryListEl = document.getElementById('inventory-list');
+        const benchInventoryListEl = document.getElementById('bench-inventory-list');
 
-            // Determine mission text and completion status
-            if (phaseComplete && awaitingPhaseTransitionTalk) {
-                 // Phase done, waiting for talk - show the *last* mission text
-                 const lastMissionDescription = missions.length > 0 ? missions[missions.length - 1].description : "Fase Concluída!";
-                 missionHeaderEl.textContent = lastMissionDescription;
-                 missionHeaderEl.className = `${missionClass} text-success`; // Mark as green
-            } else if (phaseComplete && !awaitingPhaseTransitionTalk) {
-                 // Game truly finished (after final phase)
-                  const lastMissionDescription = missions.length > 0 ? missions[missions.length - 1].description : "Todas as Fases Concluídas!";
-                 missionHeaderEl.textContent = lastMissionDescription; // Show final message
-                 missionHeaderEl.className = `${missionClass} text-success`;
-            } else if (currentMissionIndex < missions.length) {
-                 // Phase ongoing, show current mission
-                 missionHeaderEl.textContent = missions[currentMissionIndex].description;
-                 missionHeaderEl.className = missionClass; // Normal style
-                 missionHeaderEl.classList.remove('highlight'); // Ensure highlight is off initially
-            } else {
-                 // Should not happen in normal flow, but good fallback
-                 missionHeaderEl.textContent = "Carregando...";
-                 missionHeaderEl.className = 'mission-header';
+        // --- Create Water Source Visual & Resource ---
+        function createWaterSource() { /* ... unchanged ... */
+            const sourceGroup = new THREE.Group();
+            const baseGeo = new THREE.CylinderGeometry(0.8, 1, 0.3, 12);
+            const baseMat = new THREE.MeshStandardMaterial({ color: 0xaaaaaa, roughness: 0.6 });
+            const base = new THREE.Mesh(baseGeo, baseMat);
+            base.receiveShadow = true;
+            sourceGroup.add(base);
+
+            const waterGeo = new THREE.CylinderGeometry(0.7, 0.7, 0.15, 12);
+            const waterMat = new THREE.MeshStandardMaterial({ color: 0x64b5f6, transparent: true, opacity: 0.85, roughness: 0.2, metalness: 0.1 });
+            const water = new THREE.Mesh(waterGeo, waterMat);
+            water.position.y = 0.08;
+            sourceGroup.add(water);
+
+            sourceGroup.position.set(5, 0.15, 2);
+            // UserData for FIND mission, but NOT added to interactiveObjects
+            sourceGroup.userData = { type: 'water_source', id: 'water_source', name: 'Fonte de Água (Visual)' };
+            scene.add(sourceGroup);
+            return sourceGroup; // Return reference to position the resource
+        }
+        function createWaterResourceMesh(sourcePosition) { /* ... unchanged ... */
+            const resourceGeo = new THREE.SphereGeometry(0.25, 16, 12);
+            const resourceMat = new THREE.MeshStandardMaterial({
+                color: 0x64b5f6, // Blue
+                transparent: true,
+                opacity: 0.75,
+                emissive: 0x88ccff, // Slight glow
+                emissiveIntensity: 0.4,
+                roughness: 0.1,
+                metalness: 0.2
+            });
+            const resourceMesh = new THREE.Mesh(resourceGeo, resourceMat);
+            // Position above the source base
+            resourceMesh.position.copy(sourcePosition).add(new THREE.Vector3(0, 0.8, 0)); // Adjust Y as needed
+            resourceMesh.visible = false; // Start invisible
+            resourceMesh.userData = { type: 'water_resource', id: 'water_resource_collectible' }; // Identify it
+            scene.add(resourceMesh);
+            return resourceMesh;
+        }
+
+
+        // --- Plant Creation & Positioning ---
+        const plantsPerGroup = {};
+        plantasData.forEach(data => { /* ... unchanged positioning & label creation ... */
+            const groupInfo = plantGroups[data.group]; if (!groupInfo) { data.position = new THREE.Vector3((Math.random() - 0.5) * 20, 0, (Math.random() - 0.5) * 20); } else { plantsPerGroup[data.group] = (plantsPerGroup[data.group] || 0) + 1; const angleOffset = (plantsPerGroup[data.group] * (Math.PI / 3.5 + Math.random() * 0.3)); const distanceOffset = 2.5 + (plantsPerGroup[data.group] * 0.8); data.position = new THREE.Vector3( groupInfo.position.x + Math.cos(angleOffset) * distanceOffset, 0, groupInfo.position.z + Math.sin(angleOffset) * distanceOffset ); }
+            const plantMesh = createPlantMesh(data);
+            plantMesh.userData.isCollected = false; plantMesh.userData.respawnTimer = 0;
+            plantMeshes.push(plantMesh); interactiveObjects.push(plantMesh); // Plants ARE interactive
+            const label = document.createElement('span'); label.textContent = data.name; label.className = 'plant-label'; plantLabelsContainer.appendChild(label); plantLabelElements[data.id] = label; plantMesh.userData.labelElement = label;
+        });
+
+        // --- createPlantMesh & Shape Functions ---
+        // (Identical functions createPlantMesh, createBush, etc. from previous version)
+        function createPlantMesh(data) { /* ... unchanged ... */
+            const plantGroup = new THREE.Group(); plantGroup.position.copy(data.position); const stemHeight = Math.random() * 0.5 + 0.6; const stemGeo = new THREE.CylinderGeometry(0.04, 0.06, stemHeight, 6); const stemMat = new THREE.MeshStandardMaterial({ color: data.stemColor || 0x8B4513, roughness: 0.9 }); const stem = new THREE.Mesh(stemGeo, stemMat); stem.position.y = stemHeight / 2; stem.castShadow = true; plantGroup.add(stem); const topMaterial = new THREE.MeshStandardMaterial({ color: data.color, roughness: 0.7, metalness: 0.1 }); let topShape;
+            switch (data.shape) { case 'flower': topShape = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 8), topMaterial); break; case 'bush': topShape = createBush(topMaterial, stemHeight); break; case 'tall_flower': topShape = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.6, 8), topMaterial); break; case 'rosemary': topShape = createRosemary(topMaterial, stemHeight); break; case 'large_leaf_bush': topShape = createLargeLeafBush(topMaterial, stemHeight); break; case 'aloe': topShape = createAloe(topMaterial, stemHeight); break; case 'flower_orange': topShape = new THREE.Mesh(new THREE.SphereGeometry(0.35, 12, 8), new THREE.MeshStandardMaterial({ color: 0xFF9800 })); break; case 'flower_yellow': topShape = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 8), new THREE.MeshStandardMaterial({ color: 0xffc107 })); break; case 'flower_pink': topShape = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 8), new THREE.MeshStandardMaterial({ color: 0x9575cd })); break; case 'vine_flower': topShape = createVineFlower(topMaterial, stemHeight); break; case 'tall_thin': topShape = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.8, 6), topMaterial); break; case 'spiky_bush': topShape = createSpikyBush(topMaterial, stemHeight); break; case 'vine_leaf': topShape = createVineLeaf(topMaterial, stemHeight); break; case 'tall_tree_like': topShape = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.5, 8), topMaterial); break; case 'bush_round': topShape = new THREE.Mesh(new THREE.SphereGeometry(0.45, 10, 8), topMaterial); break; case 'bush_grey': topShape = new THREE.Mesh(new THREE.IcosahedronGeometry(0.4, 0), new THREE.MeshStandardMaterial({ color: 0x9e9e9e, roughness: 0.8 })); break; case 'low_spiky': topShape = createLowSpiky(topMaterial, stemHeight); break; case 'artichoke_like': topShape = new THREE.Mesh(new THREE.IcosahedronGeometry(0.35, 0), topMaterial); break; case 'bush_round_orange': topShape = createBush(new THREE.MeshStandardMaterial({ color: 0xFF9800 }), stemHeight, 0.5); break; case 'tall_thin_bushy': topShape = createTallThinBushy(topMaterial, stemHeight); break; default: console.warn(`Forma desconhecida: ${data.shape}...`); topShape = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 8), topMaterial); break; }
+            if (topShape) { if (!(topShape instanceof THREE.Group)) { const geometryParams = topShape.geometry.parameters; let shapeHeight = 0.3; if (geometryParams) { if (geometryParams.height) shapeHeight = geometryParams.height; else if (geometryParams.radius) shapeHeight = geometryParams.radius * 2; } topShape.position.y = stemHeight + shapeHeight * 0.4; } else { topShape.position.y = stemHeight * 0.1; } topShape.castShadow = true; topShape.traverse(child => { if (child.isMesh) child.castShadow = true; }); plantGroup.add(topShape); }
+            plantGroup.userData = { ...data, type: 'plant' }; scene.add(plantGroup); return plantGroup;
+        }
+        function createBush(material, stemH, scale = 0.4){ const g=new THREE.Group(); for(let i=0; i<7; i++){ const sphereGeo = new THREE.SphereGeometry(Math.random()*0.15+0.1, 8, 6); const sphere = new THREE.Mesh(sphereGeo, material); sphere.position.set((Math.random()-0.5)*scale, stemH+(Math.random()-0.4)*scale*1.2, (Math.random()-0.5)*scale); sphere.castShadow=true; g.add(sphere); } return g; }
+        function createRosemary(m,h){ const g=new THREE.Group(); for(let i=0;i<12;i++){const lG=new THREE.CylinderGeometry(0.02,0.02,0.6,5);const l=new THREE.Mesh(lG,m); l.position.set((Math.random()-0.5)*0.15, h+(Math.random())*0.5, (Math.random()-0.5)*0.15); l.rotation.x=(Math.random()-0.5)*Math.PI/1.2; l.rotation.z=(Math.random()-0.5)*Math.PI/1.2; l.castShadow=true;g.add(l);} return g; }
+        function createLargeLeafBush(m,h){ const g=new THREE.Group(); for(let i=0;i<6;i++){ const lG=new THREE.PlaneGeometry(0.6,0.8); const l=new THREE.Mesh(lG,m.clone()); l.material.side=THREE.DoubleSide; l.position.set((Math.random()-0.5)*0.5, h+(Math.random())*0.6, (Math.random()-0.5)*0.5); l.rotation.x=Math.random()*Math.PI*0.2; l.rotation.y=Math.random()*Math.PI; l.rotation.z=(Math.random()-0.5)*Math.PI*0.2; l.castShadow=true; g.add(l);} return g;}
+        function createAloe(m,h){ const g=new THREE.Group(); for(let i=0;i<8;i++){ const lG=new THREE.CylinderGeometry(0.03,0.12,0.9,5); const l=new THREE.Mesh(lG,m); l.position.y=h*0.7; l.rotation.z=(Math.random()-0.5)*0.4; l.rotation.x=Math.PI/2.4+(Math.random()-0.5)*0.2; l.rotateY(i*(Math.PI*2/8)); l.castShadow=true; g.add(l);} return g;}
+        function createVineFlower(m,h){ const g=new THREE.Group(); const k=new THREE.Mesh(new THREE.TorusKnotGeometry(0.25,0.06,60,8),m); k.position.y=h+0.25; k.castShadow=true; g.add(k); return g; }
+        function createSpikyBush(m,h){ const g=new THREE.Group(); const i=new THREE.Mesh(new THREE.IcosahedronGeometry(0.45, 0), m); i.position.y=h+0.25; i.castShadow=true; g.add(i); return g; }
+        function createVineLeaf(m,h){ return createLargeLeafBush(m,h); }
+        function createLowSpiky(m,h){ const g=new THREE.Group(); const t=new THREE.Mesh(new THREE.TetrahedronGeometry(0.45,0), m); t.position.y=h+0.25; t.castShadow=true; g.add(t); return g; }
+        function createTallThinBushy(material, stemH) { /* ... unchanged ... */
+            const group = new THREE.Group(); const numStalks = 5 + Math.floor(Math.random() * 4);
+            for (let i = 0; i < numStalks; i++) { const stalkHeight = 0.8 + Math.random() * 0.5; const stalkGeo = new THREE.CylinderGeometry(0.03, 0.04, stalkHeight, 5); const stalk = new THREE.Mesh(stalkGeo, material); const angle = (i / numStalks) * Math.PI * 2; const radius = 0.1 + Math.random() * 0.1; stalk.position.set(Math.cos(angle) * radius, stemH + stalkHeight * 0.5 - 0.1, Math.sin(angle) * radius); stalk.rotation.x = (Math.random() - 0.5) * 0.2; stalk.rotation.z = (Math.random() - 0.5) * 0.2; stalk.castShadow = true; group.add(stalk);
+                for (let j = 0; j < 3; j++) { const leafGeo = new THREE.BoxGeometry(0.02, 0.2, 0.02); const leaf = new THREE.Mesh(leafGeo, material); leaf.position.y = Math.random() * stalkHeight * 0.6 + stalkHeight * 0.2; leaf.position.x = (Math.random() - 0.5) * 0.1; leaf.position.z = (Math.random() - 0.5) * 0.1; leaf.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI); stalk.add(leaf); }
+             } return group;
+        }
+
+        // NEW: Wood Creation
+        function createWoodMesh(data) {
+            const woodGroup = new THREE.Group();
+            const logMaterial = new THREE.MeshStandardMaterial({ color: data.color || 0x8D6E63, roughness: 0.9 });
+            const logGeo = new THREE.CylinderGeometry(0.1, 0.12, 0.8, 6);
+
+            // Create a small pile of logs
+            const log1 = new THREE.Mesh(logGeo, logMaterial);
+            log1.rotation.z = Math.PI / 2;
+            log1.rotation.y = Math.random() * 0.5;
+            log1.position.y = 0.1;
+            log1.castShadow = true;
+            woodGroup.add(log1);
+
+            const log2 = new THREE.Mesh(logGeo, logMaterial);
+            log2.rotation.z = Math.PI / 2;
+            log2.rotation.y = Math.random() * 0.5 - 0.2;
+            log2.position.set(0.05, 0.1, 0.15);
+            log2.castShadow = true;
+            woodGroup.add(log2);
+
+            const log3 = new THREE.Mesh(logGeo, logMaterial);
+            log3.rotation.z = Math.PI / 2;
+            log3.rotation.y = Math.random() * 0.5 + 0.1;
+            log3.position.set(-0.05, 0.25, 0.08);
+            log3.castShadow = true;
+            woodGroup.add(log3);
+
+            woodGroup.position.copy(data.position);
+            woodGroup.userData = { ...data, type: 'wood' }; // Set type to 'wood'
+            scene.add(woodGroup);
+            return woodGroup;
+        }
+
+        // --- Crafting Bench, Firepit & Bee Creation ---
+        function createCraftingBench() { /* ... unchanged ... */
+             const benchGroup = new THREE.Group(); const benchMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.8 }); const topGeo = new THREE.BoxGeometry(2.5, 0.2, 1.2); const topMesh = new THREE.Mesh(topGeo, benchMaterial); topMesh.position.y = 0.8; topMesh.castShadow = true; topMesh.receiveShadow = true; benchGroup.add(topMesh); const legGeo = new THREE.BoxGeometry(0.2, 0.8, 0.2); const legPositions = [ { x: -1.0, z: -0.4 }, { x: 1.0, z: -0.4 }, { x: -1.0, z: 0.4 }, { x: 1.0, z: 0.4 } ]; legPositions.forEach(pos => { const legMesh = new THREE.Mesh(legGeo, benchMaterial); legMesh.position.set(pos.x, 0.4, pos.z); legMesh.castShadow = true; benchGroup.add(legMesh); }); const bottleGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.2, 8); const bottleMat = new THREE.MeshStandardMaterial({ color: 0xa0a0ff, transparent: true, opacity: 0.6 }); const bottle1 = new THREE.Mesh(bottleGeo, bottleMat); bottle1.position.set(-0.8, 0.8 + 0.1, 0.3); bottle1.castShadow = true; benchGroup.add(bottle1); const bottle2 = bottle1.clone(); bottle2.position.set(-0.6, 0.8 + 0.1, 0.35); benchGroup.add(bottle2);
+             benchGroup.position.set(0, 0, 3); benchGroup.userData = { type: 'crafting_bench', id: 'crafting_bench', name: 'Bancada de Preparo' }; scene.add(benchGroup); interactiveObjects.push(benchGroup); return benchGroup; // Bench IS interactive
+        }
+
+        // NEW: Create Firepit
+        function createFirepitMesh() {
+            const firepitGroup = new THREE.Group();
+            const stoneMaterial = new THREE.MeshStandardMaterial({ color: 0x78909C, roughness: 0.85 });
+            const woodMaterial = new THREE.MeshStandardMaterial({ color: 0x6D4C41, roughness: 0.9 });
+            const fireMaterial = new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0.8 }); // Simple fire glow
+
+            // Stones around
+            const stoneGeo = new THREE.BoxGeometry(0.3, 0.25, 0.3);
+            for (let i = 0; i < 8; i++) {
+                const angle = (i / 8) * Math.PI * 2;
+                const radius = 0.6;
+                const stone = new THREE.Mesh(stoneGeo, stoneMaterial);
+                stone.position.set(Math.cos(angle) * radius, 0.125, Math.sin(angle) * radius);
+                stone.rotation.y = -angle + Math.random() * 0.4 - 0.2;
+                stone.castShadow = true;
+                firepitGroup.add(stone);
             }
 
-            document.getElementById('nursery-status').textContent = nurseryBuilt ? "🛖 Berçário Construído" : "";
-            updatePacientesUI();
-            addPatientMarkers();
+            // Wood inside (simple logs)
+            const logGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.7, 5);
+            const log1 = new THREE.Mesh(logGeo, woodMaterial);
+            log1.rotation.set(0, 0, Math.PI / 2.5);
+            log1.position.set(0, 0.1, 0.1);
+            log1.castShadow = true;
+            firepitGroup.add(log1);
+            const log2 = new THREE.Mesh(logGeo, woodMaterial);
+            log2.rotation.set(0, 0, -Math.PI / 2.2);
+            log2.position.set(0.1, 0.15, -0.1);
+            log2.castShadow = true;
+            firepitGroup.add(log2);
+
+            // Fire glow (optional simple sphere)
+            const fireGeo = new THREE.SphereGeometry(0.3, 12, 8);
+            const fire = new THREE.Mesh(fireGeo, fireMaterial);
+            fire.position.y = 0.2;
+            // Add point light for better effect (optional)
+            const fireLight = new THREE.PointLight(0xffaa33, 0.8, 3);
+            fireLight.position.y = 0.4;
+            fire.add(fireLight); // Attach light to the glow mesh
+            firepitGroup.add(fire);
+
+
+            firepitGroup.position.set(4, 0, -2); // Position near water source?
+            firepitGroup.userData = { type: 'firepit', id: 'firepit', name: 'Fogueira' };
+            scene.add(firepitGroup);
+            interactiveObjects.push(firepitGroup); // Firepit IS interactive
+            return firepitGroup;
         }
 
-        // REVISED: setPhaseIndicator uses currentPhase
-        function setPhaseIndicator() {
-             const indicatorEl = document.getElementById('phase-indicator');
-             indicatorEl.textContent = `(Fase ${currentPhase})`;
-             if (currentPhase === 1) indicatorEl.style.color = '#ffc107';
-             else if (currentPhase === 2) indicatorEl.style.color = '#00bcd4';
-             else if (currentPhase === 3) indicatorEl.style.color = '#ff9800';
-             else indicatorEl.style.color = '#ffffff'; // Default
-         }
-
-        // --- Helper Functions (Emojis, Capitalize, CSS Classes) --- (Unchanged)
-        function getClassForResource(type, location) { switch(type) { case 'venom': return 'venom-storage'; case 'water': return 'water-storage'; case 'veneno_homeopatico': return 'homeopathic-storage'; case 'cera': return 'cera-storage'; default: return location === 'carrying' ? 'carrying' : 'hive'; } }
-        function getEmoji(type) { switch(type){case'mel':return'🍯'; case'propolis':return'🪵'; case'polen':return'🌼'; case'geleia':return'👑'; case'venom':return'☠️'; case 'water': return '💧'; case 'veneno_homeopatico': return '🧪'; case 'cera': return '🧱'; case 'nursery': return '🛖'; default:return'❓';}} // Added nursery emoji
-        function capitalize(s) { if (!s) return ''; if (s === 'veneno_homeopatico') return 'Veneno Homeopático'; if (s === 'cera') return 'Cera'; return s.charAt(0).toUpperCase()+s.slice(1);}
-
-        // --- Resource Spawning / Management --- (Unchanged)
-        const resourceTypes={'mel':{color:0xffc107,geometry:new THREE.SphereGeometry(0.15,8,6)},'propolis':{color:0x6d4c41,geometry:new THREE.BoxGeometry(0.2,0.3,0.2)},'polen':{color:0xff5722,geometry:new THREE.IcosahedronGeometry(0.18,0)},'geleia':{color:0x9c27b0,geometry:new THREE.TorusGeometry(0.15,0.05,8,12),emissive:0x550055}};
-        function createResource(type,position){ if(!scene)return; const config=resourceTypes[type]; if(!config)return; const material=new THREE.MeshStandardMaterial({color:config.color,emissive:config.emissive||0x000000}); const resourceMesh=new THREE.Mesh(config.geometry,material); if(!position){const range= currentPhase===3? 35 : (currentPhase === 2 ? 30 : 20); position=new THREE.Vector3((Math.random()-0.5)*range,0.2,(Math.random()-0.5)*range);} if(position.distanceTo(hivePosition)<3)position.x+=3*Math.sign(position.x||1); if (Math.abs(position.x - water.position.x) < (water.geometry.parameters.width / 2 + 1) && Math.abs(position.z - water.position.z) < (water.geometry.parameters.height / 2 + 1)) { position.x += (water.geometry.parameters.width / 2 + 2) * Math.sign(position.x - water.position.x || 1); } resourceMesh.position.copy(position); resourceMesh.userData={type:type}; resourceMesh.castShadow=true; scene.add(resourceMesh); activeResources.push(resourceMesh); return resourceMesh;}
-        function createWaterSource() { /* ... Unchanged ... */ if (!scene || !water) return; const waterWidth = water.geometry.parameters.width; const waterHeight = water.geometry.parameters.height; const waterX = water.position.x; const waterZ = water.position.z; const x = waterX + (Math.random() - 0.5) * waterWidth * 0.9; const z = waterZ + (Math.random() - 0.5) * waterHeight * 0.9; const y = 0.3; const waterMesh = new THREE.Mesh(waterSourceGeo, waterSourceMat); waterMesh.position.set(x, y, z); waterMesh.userData = { type: 'waterSource' }; waterMesh.castShadow = true; scene.add(waterMesh); activeWaterSources.push(waterMesh); return waterMesh; }
-        function clearOldResources() { /* ... Unchanged ... */ for (let i = activeResources.length - 1; i >= 0; i--) { if (activeResources[i] !== venomSource) { scene.remove(activeResources[i]); activeResources.splice(i, 1); } } for (let i = activeWaterSources.length - 1; i >= 0; i--) { scene.remove(activeWaterSources[i]); activeWaterSources.splice(i, 1); } }
-        function spawnInitialResources(){ /* ... Phase 1 ... */ clearOldResources(); if(!scene) return; if (!activeResources.includes(venomSource)) activeResources.push(venomSource); createResource('mel', new THREE.Vector3(3, 0.2, -2)); createResource('propolis', new THREE.Vector3(-3, 0.2, -3)); createResource('polen', new THREE.Vector3(5, 0.2, -6)); createResource('geleia', new THREE.Vector3(-4, 0.2, -5)); for(let i=0; i<5; i++) createResource('mel'); for(let i=0; i<3; i++) createResource('propolis'); for(let i=0; i<4; i++) createResource('polen'); }
-        function spawnPhase2Resources() { /* ... Phase 2 ... */ if(!scene) return; if (!activeResources.includes(venomSource)) activeResources.push(venomSource); createResource('mel', new THREE.Vector3(-10, 0.2, -8)); createResource('propolis', new THREE.Vector3(16, 0.2, 6)); createResource('polen', new THREE.Vector3(-12, 0.2, -12)); createResource('geleia', new THREE.Vector3(-6, 0.2, -14)); for(let i=0; i<6; i++) createResource('mel'); for(let i=0; i<7; i++) createResource('propolis'); for(let i=0; i<6; i++) createResource('polen'); }
-        function spawnInitialWaterSources() { /* ... Unchanged ... */ if (!scene || !water) return; for (let i = activeWaterSources.length - 1; i >= 0; i--) { scene.remove(activeWaterSources[i]); } activeWaterSources = []; for (let i = 0; i < 8; i++) { createWaterSource(); } }
-        function removeResourceFromScene(resourceMesh, isWater = false){ /* ... Unchanged ... */ if (!scene) return; scene.remove(resourceMesh); const sourceArray = isWater ? activeWaterSources : activeResources; const index = sourceArray.indexOf(resourceMesh); if (index > -1) { sourceArray.splice(index, 1); } }
-        function respawnResource(type){ /* ... Unchanged ... */ if(type==='venomSource'){ console.log("Venom source cooldown..."); venomSource.userData.active=false; venomSource.visible=false; setTimeout(()=>{if(venomSource&&scene){venomSource.userData.active=true; venomSource.visible=true; console.log("Venom source active."); updateStatus("A fonte de veneno está ativa novamente!","info");}},30000);} else if (type === 'waterSource') { setTimeout(() => { createWaterSource(); }, 5000); } else{ setTimeout(()=>{createResource(type);},8000);} }
-
-        // --- Movement Controls & State --- (Unchanged)
-        const moveState = { forward: 0, turn: 0, up: 0, down: 0 }; const moveSpeed = 3.0; const turnSpeed = 2.5; const verticalSpeed = 2.0; const maxBeeHeight = 10; const minBeeHeight = 0.3;
-        window.addEventListener('keydown', (e) => { switch (e.key.toLowerCase()) { case 'arrowup': case 'w': moveState.forward = 1; break; case 'arrowdown': case 's': moveState.forward = -1; break; case 'arrowleft': case 'a': moveState.turn = 1; break; case 'arrowright': case 'd': moveState.turn = -1; break; case ' ': moveState.up = 1; break; case 'shift': moveState.down = 1; break; case 'e': tryDepositResources(); break; } if ([' ', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'shift'].includes(e.key.toLowerCase())) { e.preventDefault(); } });
-        window.addEventListener('keyup', (e) => { switch (e.key.toLowerCase()) { case 'arrowup': case 'w': if (moveState.forward === 1) moveState.forward = 0; break; case 'arrowdown': case 's': if (moveState.forward === -1) moveState.forward = 0; break; case 'arrowleft': case 'a': if (moveState.turn === 1) moveState.turn = 0; break; case 'arrowright': case 'd': if (moveState.turn === -1) moveState.turn = 0; break; case ' ': moveState.up = 0; break; case 'shift': moveState.down = 0; break; } });
-
-        // --- Interaction Logic --- (Unchanged checks, just call checkMissionCompletion)
-        const interactionDistance = { resource: 0.4, water: 0.4, patient: 0.5, hive: 1.0, venomSource: 0.5, npc: 1.2 };
-        function checkCollisionsAndInteractions() { if (phaseComplete && !awaitingPhaseTransitionTalk) return; /* Stop interactions if phase done and not waiting for talk */ if (!beeGroup || !scene) return; const beePos = beeGroup.position; let interactedThisFrame = false; const totalCarrying=Object.values(currentlyCarrying).reduce((a,b)=>a+b,0); /* Venom */ if (!interactedThisFrame && venomSource && venomSource.userData.active && beePos.distanceTo(venomSource.position) < interactionDistance.venomSource) { if(currentlyCarrying.venom>0){updateStatus("Você já está carregando Veneno!","warning");} else if(totalCarrying>=carryingCapacity){updateStatus(`Não pode carregar mais! (${totalCarrying}/${carryingCapacity}) Volte.`,"warning");} else{currentlyCarrying.venom++; updateInfoPanel(); updateStatus(`Coletou 1 ${getEmoji('venom')} Veneno! (${totalCarrying+1}/${carryingCapacity})`,'success'); respawnResource('venomSource'); interactedThisFrame=true; checkMissionCompletion(); } } /* Water (P2+) */ if (!interactedThisFrame && currentPhase >= 2 ) { for (let i = activeWaterSources.length - 1; i >= 0; i--) { const waterRes = activeWaterSources[i]; if (!waterRes || !waterRes.position) continue; const distXZ = new THREE.Vector2(beePos.x - waterRes.position.x, beePos.z - waterRes.position.z).length(); const distY = Math.abs(beePos.y - waterRes.position.y); if (distXZ < interactionDistance.water && distY < interactionDistance.water * 1.5) { if (totalCarrying < carryingCapacity) { currentlyCarrying.water++; removeResourceFromScene(waterRes, true); updateInfoPanel(); updateStatus(`Coletou 1 ${getEmoji('water')} Água! (${totalCarrying + 1}/${carryingCapacity})`, 'success'); respawnResource('waterSource'); interactedThisFrame = true; checkMissionCompletion(); } else { updateStatus(`Não pode carregar mais! (${totalCarrying}/${carryingCapacity}) Volte.`, 'warning'); } break; } } } /* Generic */ if (!interactedThisFrame) { for (let i = activeResources.length - 1; i >= 0; i--) { const res = activeResources[i]; if (res === venomSource || !res.userData || !res.userData.type) continue; if (beePos.distanceTo(res.position) < interactionDistance.resource) { const type=res.userData.type; if(totalCarrying<carryingCapacity){ currentlyCarrying[type]++; removeResourceFromScene(res); updateInfoPanel(); updateStatus(`Coletou 1 ${getEmoji(type)} ${capitalize(type)}! (${totalCarrying+1}/${carryingCapacity})`,'success'); respawnResource(type); interactedThisFrame=true; checkMissionCompletion(); } else{updateStatus(`Não pode carregar mais! (${totalCarrying}/${carryingCapacity}) Volte.`,'warning');} break; } } }
-            /* Patients */ if (!interactedThisFrame && !phaseComplete && currentMissionIndex < missions.length) { const mission = missions[currentMissionIndex]; if (mission.type === 'treat') { const targetPatientId = mission.targetPatientId; const markerIndex = patientMarkers.findIndex(m => m.userData.patientId === targetPatientId); if (markerIndex !== -1) { const marker = patientMarkers[markerIndex]; if (beePos.distanceTo(marker.position) < interactionDistance.patient) { const patientIndex = pacientes.findIndex(p => p.id === targetPatientId); if (patientIndex !== -1) { const p = pacientes[patientIndex]; const requiredProducts = p.produto; let productToUse = null; if (Array.isArray(requiredProducts)) { productToUse = requiredProducts.find(prod => hiveStorage[prod] > 0); } else { if (hiveStorage[requiredProducts] > 0) { productToUse = requiredProducts; } } if (productToUse) { hiveStorage[productToUse]--; const treatedCase=p.caso; handlePatientTreated(patientIndex,marker,markerIndex); updateStatus(`Paciente ${p.id} (${treatedCase}) curado com ${getEmoji(productToUse)} ${capitalize(productToUse)}!`,'success'); interactedThisFrame = true; checkMissionCompletion(); } else { let neededStr = ''; if (Array.isArray(requiredProducts)) { neededStr = requiredProducts.map(pr => `${getEmoji(pr)} ${capitalize(pr)}`).join(' ou '); } else { neededStr = `${getEmoji(requiredProducts)} ${capitalize(requiredProducts)}`; } updateStatus(`${neededStr} indisponível na Colmeia para Paciente ${p.id}!`, 'error'); } } } } } }
+        function createBee() { /* ... unchanged ... */
+             const beeGroup = new THREE.Group(); const bodyMat = new THREE.MeshStandardMaterial({ color: 0xffcc00 }); const blackMat = new THREE.MeshStandardMaterial({ color: 0x222222 }); const wingMat = new THREE.MeshStandardMaterial({ color: 0xddddff, transparent: true, opacity: 0.7 }); const body = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.18, 0.18), bodyMat); beeGroup.add(body); const head = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.12), blackMat); head.position.set(-0.21, 0, 0); beeGroup.add(head); const wing1 = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.18, 0.36), wingMat); wing1.position.set(0.06, 0.15, 0); beeGroup.add(wing1); const wing2 = wing1.clone(); wing2.position.set(-0.06, 0.15, 0); beeGroup.add(wing2); beeGroup.position.set(10, 1.5, -4); beeGroup.userData = { type: 'bee_link', id: 'bee', name: 'Abelha', url: 'https://edaraujofilho.criadorlw.com.br/aula10pics' }; scene.add(beeGroup); interactiveObjects.push(beeGroup); return beeGroup; // Bee IS interactive
         }
-        function handlePatientTreated(patientIndex,marker,markerIndex){ /* ... Unchanged ... */ pacientes.splice(patientIndex,1); if(scene)scene.remove(marker); patientMarkers.splice(markerIndex,1); updateInfoPanel();}
 
-        // --- Deposit, Crafting, Building ---
-        function tryDepositResources(){ /* ... Unchanged logic, calls helper functions ... */ if (!beeGroup || !hiveGroup) return; const beePos = beeGroup.position; if (beePos.distanceTo(hivePosition) < interactionDistance.hive) { let depositedCount = 0; for (const type in currentlyCarrying) { if (currentlyCarrying[type] > 0 && type !== 'cera') { hiveStorage[type] = (hiveStorage[type] || 0) + currentlyCarrying[type]; depositedCount += currentlyCarrying[type]; currentlyCarrying[type] = 0; } } if (depositedCount > 0) { updateInfoPanel(); let craftedItems = checkForCrafting(); let builtSomething = checkForBuilding(); let statusMsg = `${depositedCount} itens depositados!`; if (craftedItems.length > 0) statusMsg += ` ${craftedItems.map(item => `+${item.count} ${getEmoji(item.type)}`).join(', ')} criado(s)!`; if (builtSomething) statusMsg += ` ${getEmoji('nursery')} Berçário construído!`; updateStatus(statusMsg, 'success'); checkMissionCompletion(); } else { updateStatus(`Nada para depositar.`, 'info'); } } else { updateStatus(`Aproxime-se mais da Colmeia para depositar (Tecla 'E').`, 'warning'); } }
-        function checkForCrafting() { /* ... Unchanged logic for Venom/Cera ... */ let craftedItems = []; /* Venom (P2+) */ if (currentPhase >= 2) { const mission = (currentMissionIndex < missions.length) ? missions[currentMissionIndex] : null; const needsVenomCraftMission = mission && mission.type === 'craft' && mission.yields === 'veneno_homeopatico'; const venomNeeded = needsVenomCraftMission ? mission.requires.venom : 1; const waterNeeded = needsVenomCraftMission ? mission.requires.water : 3; const goal = needsVenomCraftMission ? mission.goal : 0; if (needsVenomCraftMission && hiveStorage.veneno_homeopatico < goal && hiveStorage.venom >= venomNeeded && hiveStorage.water >= waterNeeded) { hiveStorage.venom -= venomNeeded; hiveStorage.water -= waterNeeded; hiveStorage.veneno_homeopatico++; craftedItems.push({ type: 'veneno_homeopatico', count: 1 }); console.log("Crafted Homeopathic Venom"); } } /* Cera (P3+) */ if (currentPhase >= 3) { const ceraRecipe = { mel: 3, water: 3, polen: 1 }; while (hiveStorage.mel >= ceraRecipe.mel && hiveStorage.water >= ceraRecipe.water && hiveStorage.polen >= ceraRecipe.polen) { hiveStorage.mel -= ceraRecipe.mel; hiveStorage.water -= ceraRecipe.water; hiveStorage.polen -= ceraRecipe.polen; hiveStorage.cera++; let ceraEntry = craftedItems.find(item => item.type === 'cera'); if (ceraEntry) { ceraEntry.count++; } else { craftedItems.push({ type: 'cera', count: 1 }); } console.log("Crafted Cera"); } } if (craftedItems.length > 0) { updateInfoPanel(); } return craftedItems; }
-        function checkForBuilding() { /* ... Unchanged logic ... */ if (currentPhase !== 3 || nurseryBuilt) return false; const mission = (currentMissionIndex < missions.length) ? missions[currentMissionIndex] : null; if (mission && mission.type === 'build_nursery' && hiveStorage.cera >= 6) { hiveStorage.cera -= 6; nurseryBuilt = true; buildNurseryVisuals(); updateInfoPanel(); console.log("Nursery Built!"); return true; } return false; }
-        function buildNurseryVisuals() { /* ... Unchanged logic ... */ if (nurseryMesh || !hiveGroup) return; const hexagonShape = new THREE.Shape(); const size = 0.5; const H = Math.sqrt(3) * size; hexagonShape.moveTo(size, 0); hexagonShape.lineTo(size / 2, H / 2); hexagonShape.lineTo(-size / 2, H / 2); hexagonShape.lineTo(-size, 0); hexagonShape.lineTo(-size / 2, -H / 2); hexagonShape.lineTo(size / 2, -H / 2); hexagonShape.lineTo(size, 0); const extrudeSettings = { depth: 0.2, bevelEnabled: false }; const geometry = new THREE.ExtrudeGeometry(hexagonShape, extrudeSettings); const material = new THREE.MeshStandardMaterial({ color: 0xF5F5DC, side: THREE.DoubleSide }); nurseryMesh = new THREE.Mesh(geometry, material); const hiveRadius = hiveBase.geometry.parameters.radiusTop; const nurseryOffset = hiveRadius + size * 0.8; nurseryMesh.position.set(nurseryOffset, -0.3, 0); nurseryMesh.rotation.x = -Math.PI / 2; nurseryMesh.castShadow = true; nurseryMesh.receiveShadow = true; hiveGroup.add(nurseryMesh); console.log("Nursery mesh added to scene at", nurseryMesh.position); }
+        // --- NPC Creation ---
+        function createNPCMesh(data) { /* ... unchanged ... */
+            const npcGroup = new THREE.Group(); const bodyGeo = new THREE.CylinderGeometry(0.3, 0.4, 1.2, 8); const bodyMat = new THREE.MeshStandardMaterial({ color: data.color || 0xcccccc, roughness: 0.8 }); const body = new THREE.Mesh(bodyGeo, bodyMat); body.position.y = 0.6; body.castShadow = true; npcGroup.add(body); const headGeo = new THREE.SphereGeometry(0.3, 16, 16); const headMat = new THREE.MeshStandardMaterial({ color: data.color ? new THREE.Color(data.color).offsetHSL(0, 0, -0.2) : 0xaaaaaa, roughness: 0.7 }); const head = new THREE.Mesh(headGeo, headMat); head.position.y = 1.2 + 0.3; head.castShadow = true; npcGroup.add(head); npcGroup.position.copy(data.position); npcGroup.userData = { ...data, type: 'npc' }; scene.add(npcGroup); interactiveObjects.push(npcGroup); return npcGroup; // NPCs ARE interactive
+        }
+        npcsData.forEach(npcData => { npcMeshes.push(createNPCMesh(npcData)); });
 
-        // --- Mission Logic (Revised) ---
-        function checkMissionCompletion() {
-             // Exit checks: Phase already done? Invalid index? No mission defined?
-             if (phaseComplete || currentMissionIndex >= missions.length) return;
-             const mission = missions[currentMissionIndex];
-             if (!mission) { console.error("Mission definition missing at index", currentMissionIndex); return; }
+        // NEW: Create Wood Piles
+        woodData.forEach(data => {
+             const woodMesh = createWoodMesh(data);
+             woodMesh.userData.isCollected = false;
+             woodMesh.userData.respawnTimer = 0;
+             woodMeshes.push(woodMesh);
+             interactiveObjects.push(woodMesh); // Wood IS interactive
 
-             let completedCurrent = false;
+             // Create label for wood (similar to plants)
+             const label = document.createElement('span');
+             label.textContent = data.name;
+             label.className = 'plant-label'; // Reuse plant label style
+             plantLabelsContainer.appendChild(label);
+             plantLabelElements[data.id] = label;
+             woodMesh.userData.labelElement = label;
+        });
 
-             // Check completion criteria
-             switch (mission.type) {
-                 case 'collect': case 'collect_special':
-                     if ((hiveStorage[mission.target] || 0) >= mission.goal) completedCurrent = true;
-                     break;
-                 case 'treat':
-                     if (!pacientes.some(p => p.id === mission.targetPatientId)) completedCurrent = true;
-                     break;
-                 case 'craft':
-                      if ((hiveStorage[mission.yields] || 0) >= mission.goal) completedCurrent = true;
-                     break;
-                 case 'build_nursery':
-                      if (nurseryBuilt) completedCurrent = true;
-                      break;
-                 case 'complete_phase1': case 'complete_phase2': case 'complete_phase3':
-                     completedCurrent = true; // Mark as complete when reached
-                     break;
-                 default:
-                      console.warn("Unknown mission type:", mission.type);
-                      break; // Unknown type, cannot complete
+
+        // --- Controls Setup & Logic ---
+        const orbitControls = new THREE.OrbitControls(camera, renderer.domElement); /* ... unchanged settings ... */
+        orbitControls.enableDamping = true; orbitControls.dampingFactor = 0.07; orbitControls.screenSpacePanning = false; orbitControls.minDistance = 1; orbitControls.maxDistance = 50; orbitControls.maxPolarAngle = Math.PI / 2.05; orbitControls.target.set(0, 0.5, 0); orbitControls.enabled = (currentControlsMode === 'orbit');
+
+        const pointerLockControls = new THREE.PointerLockControls(camera, document.body); /* ... unchanged setup ... */
+        scene.add(pointerLockControls.getObject());
+
+        const controlsToggleButton = document.getElementById('controls-toggle'); /* ... unchanged UI elements ... */
+        const instructionsEl = document.getElementById('instructions');
+        const interactionPromptEl = document.getElementById('interaction-prompt');
+
+        pointerLockControls.addEventListener('lock', () => { /* ... unchanged Lock logic ... */ console.log("Pointer Locked"); canvasContainer.classList.add('pointer-locked'); controlsToggleButton.style.display = 'none'; instructionsEl.style.bottom = '20px'; interactionPromptEl.style.display = 'none'; pointerLockControls.getObject().position.y = 1.6; });
+        pointerLockControls.addEventListener('unlock', () => { /* ... unchanged Unlock logic ... */ console.log("Pointer Unlocked"); canvasContainer.classList.remove('pointer-locked'); currentControlsMode = 'orbit'; orbitControls.enabled = true; controlsToggleButton.style.display = 'block'; controlsToggleButton.textContent = 'Ativar Visão Pessoal'; interactionPromptEl.classList.remove('visible'); instructionsEl.style.bottom = '70px'; moveState.forward = false; moveState.backward = false; moveState.left = false; moveState.right = false; velocity.set(0,0,0); });
+        controlsToggleButton.addEventListener('click', () => { /* ... unchanged Toggle logic ... */
+             if (currentControlsMode === 'orbit') { orbitControls.enabled = false; const currentTarget = orbitControls.target.clone(); if (currentTarget.y < 0.5) { currentTarget.y = 0.5; } const offsetDirection = camera.position.clone().sub(orbitControls.target).normalize(); offsetDirection.y = 0; offsetDirection.normalize(); const desiredPosition = currentTarget.clone().add(offsetDirection.multiplyScalar(2)); desiredPosition.y = 1.6; camera.position.copy(desiredPosition); pointerLockControls.getObject().position.copy(desiredPosition); const lookAtPoint = orbitControls.target.clone(); lookAtPoint.y = 1.6; camera.lookAt(lookAtPoint); pointerLockControls.lock(); currentControlsMode = 'fpv'; }
+        });
+
+        // --- FPV Movement State & Keys ---
+        const moveState = { forward: false, backward: false, left: false, right: false }; /* ... unchanged moveState, moveSpeed, velocity, direction ... */
+        const moveSpeed = 4.5;
+        const velocity = new THREE.Vector3(); const direction = new THREE.Vector3();
+
+        const onKeyDown = (event) => { /* ... onKeyDown listener (Updated F & G) ... */
+            if (!pointerLockControls.isLocked && currentControlsMode === 'fpv') return;
+            switch (event.code) {
+                 case 'ArrowUp': case 'KeyW': moveState.forward = true; break;
+                 case 'ArrowLeft': case 'KeyA': moveState.left = true; break;
+                 case 'ArrowDown': case 'KeyS': moveState.backward = true; break;
+                 case 'ArrowRight': case 'KeyD': moveState.right = true; break;
+                 case 'KeyE': if(pointerLockControls.isLocked) interactInfoOrNPC(); break; // E for Info (Plant/Wood) or Talk (NPC)
+                 case 'KeyF': if(pointerLockControls.isLocked) interactActionOrDeposit(); break; // F for Collect Plant/Wood, Bee OR Deposit (Bench)
+                 case 'KeyG': if(pointerLockControls.isLocked) interactCraftExtract(); break; // G for Craft(Bench)/Extract(Firepit)
+            }
+        };
+        const onKeyUp = (event) => { /* ... unchanged onKeyUp listener ... */
+             if (!pointerLockControls.isLocked && currentControlsMode === 'fpv') return;
+             switch (event.code) {
+                 case 'ArrowUp': case 'KeyW': moveState.forward = false; break;
+                 case 'ArrowLeft': case 'KeyA': moveState.left = false; break;
+                 case 'ArrowDown': case 'KeyS': moveState.backward = false; break;
+                 case 'ArrowRight': case 'KeyD': moveState.right = false; break;
              }
+        };
+        document.addEventListener('keydown', onKeyDown); document.addEventListener('keyup', onKeyUp);
 
-             if (completedCurrent) {
-                 const oldMissionDesc = mission.description;
-                 console.log(`Mission Completed: ${mission.id} (${currentPhase}-${currentMissionIndex}) - ${oldMissionDesc}`);
+        // --- Raycasting, Interaction & UI Refs ---
+        const raycaster = new THREE.Raycaster(); const mouse = new THREE.Vector2(); const centerScreen = new THREE.Vector2(0, 0); /* ... unchanged UI element refs ... */
+        const infoPanel = document.getElementById('info-panel'); const plantNameEl = document.getElementById('plant-name'); const plantGroupEl = document.getElementById('plant-group'); const plantBenefitsEl = document.getElementById('plant-benefits'); const plantLinkEl = document.getElementById('plant-link'); const closeInfoButton = document.getElementById('close-info');
+        const missionPanel = document.getElementById('mission-panel'); const currentMissionEl = document.getElementById('current-mission'); const knowledgeBaseEl = document.getElementById('knowledge-base').querySelector('ul'); const craftedItemsEl = document.getElementById('crafted-items').querySelector('ul'); const extractedOilsEl = document.getElementById('extracted-oils').querySelector('ul'); const statusMessageEl = document.getElementById('status-message');
+        const beeBalloon = document.getElementById('bee-balloon');
+        let isAnimatingCamera = false; const interactionDistance = 4.0; /* ... unchanged interaction state vars ... */
+        let objectInFocus = null; let canInteractWithFocus = false;
+        const tempVector = new THREE.Vector3(); const labelMaxDistance = 18;
 
-                 // Handle Phase Completion
-                 if (mission.type === 'complete_phase1' || mission.type === 'complete_phase2' || mission.type === 'complete_phase3') {
-                      phaseComplete = true; // Mark the current phase as done
-                      if (mission.type !== 'complete_phase3') { // Only wait for talk if not the final phase
-                         awaitingPhaseTransitionTalk = true;
-                         // Set the correct prompt dialogue for the NPC
-                         if (mission.type === 'complete_phase1') apicultorNPC.userData.currentDialogueId = 'phase1_complete_prompt';
-                         else if (mission.type === 'complete_phase2') apicultorNPC.userData.currentDialogueId = 'phase2_complete_prompt';
-                         updateStatus(`Fase ${currentPhase} Concluída! Fale com o Apicultor.`, "success");
-                      } else {
-                         // Final phase completed
-                         awaitingPhaseTransitionTalk = false; // No next phase talk
-                         apicultorNPC.userData.currentDialogueId = 'phase3_complete_final';
-                         updateStatus("Parabéns! Todas as Fases Concluídas!", "success");
-                      }
+
+        // --- Interaction Functions ---
+
+        function getPlayerPlantCount() { /* ... unchanged ... */ let count = 0; for (const itemId in gameState.inventory) { if (itemId !== 'water' && itemId !== 'wood' && gameState.inventory[itemId] > 0) { count++; } } return count; }
+        function getPlayerWoodCount() { /* NEW */ return gameState.inventory.wood || 0; }
+
+        function onMouseClick(event) { /* ... onMouseClick (Added wood & firepit cases) ... */
+            if (currentControlsMode !== 'orbit' || isAnimatingCamera || infoPanel.contains(event.target)) return;
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1; mouse.y = -(event.clientY / window.innerHeight) * 2 + 1; raycaster.setFromCamera(mouse, camera); const intersects = raycaster.intersectObjects(interactiveObjects, true); // Only check INTERACTIVE objects
+
+            let clickedSomethingInteractive = false;
+            if (intersects.length > 0) {
+                const clickedRoot = getRootInteractiveObject(intersects[0].object);
+                if (clickedRoot && clickedRoot.userData.id) {
+                    clickedSomethingInteractive = true;
+                    objectInFocus = clickedRoot;
+                    const ud = clickedRoot.userData;
+                    console.log("Orbit Clicked:", ud.type, ud.id);
+
+                    if ((ud.type === 'plant' || ud.type === 'wood') && !ud.isCollected) { // Combined plant/wood info
+                        focusOnPlant(clickedRoot); showInfoPanel(ud, true);
+                    } else if (ud.type === 'npc') {
+                        focusOnPlant(clickedRoot, 1.8, 4.0); interactWithNPC(clickedRoot);
+                    } else if (ud.type === 'crafting_bench') {
+                        focusOnPlant(clickedRoot, 1.0, 4.0); interactActionOrDeposit(); // May trigger deposit prompt or just focus
+                    } else if (ud.type === 'firepit') { // NEW: Click on firepit
+                        focusOnPlant(clickedRoot, 1.0, 4.0); interactCraftExtract(); // Try to use it
+                    } else if (ud.type === 'bee_link') {
+                        focusOnPlant(clickedRoot, 1.5, 3.0); interactActionOrDeposit(); // Opens link
+                    }
+                    // No specific action for clicking water source base anymore
+                }
+            }
+
+            if (!clickedSomethingInteractive) {
+                hideInfoPanel(); objectInFocus = null;
+            }
+        }
+
+        function handleFocusRaycast() { /* ... handleFocusRaycast (Updated for wood & firepit) ... */
+             if (!pointerLockControls.isLocked) return;
+             raycaster.setFromCamera(centerScreen, camera);
+             const intersects = raycaster.intersectObjects(interactiveObjects, true); // Only check INTERACTIVE objects
+             objectInFocus = null;
+             canInteractWithFocus = false;
+             interactionPromptEl.classList.remove('visible');
+
+             if (intersects.length > 0 && intersects[0].distance <= interactionDistance) {
+                 const focusedRoot = getRootInteractiveObject(intersects[0].object);
+                 if (focusedRoot && focusedRoot.userData.id) {
+                     objectInFocus = focusedRoot;
+                     const ud = objectInFocus.userData;
+                     interactionPromptEl.classList.add('visible');
+
+                     if (ud.type === 'plant') {
+                         if (!ud.isCollected) {
+                             interactionPromptEl.textContent = `[E] Ver ${ud.name}`;
+                             canInteractWithFocus = true;
+                             if (gameState.canCollectPlant) {
+                                 interactionPromptEl.textContent += ` / [F] Coletar`;
+                             }
+                         } else {
+                             interactionPromptEl.textContent = `${ud.name} (Coletado)`;
+                         }
+                     } else if (ud.type === 'wood') { // NEW: Wood interaction
+                         if (!ud.isCollected) {
+                             interactionPromptEl.textContent = `[E] Ver ${ud.name}`;
+                             canInteractWithFocus = true;
+                             if (gameState.canCollectWood) {
+                                 interactionPromptEl.textContent += ` / [F] Coletar`;
+                             }
+                         } else {
+                             interactionPromptEl.textContent = `${ud.name} (Coletado)`;
+                         }
+                     } else if (ud.type === 'crafting_bench') {
+                         const carryingPlants = getPlayerPlantCount() > 0;
+                         let benchInteractable = false;
+                         if (carryingPlants) {
+                             interactionPromptEl.textContent = `[F] Depositar Plantas`;
+                             benchInteractable = true;
+                             if (gameState.canCraftPhyto) {
+                                 interactionPromptEl.textContent += ` / [G] Usar (Chá)`;
+                             }
+                         } else if (gameState.canCraftPhyto) {
+                             interactionPromptEl.textContent = `[G] Usar Bancada (Chá)`;
+                             benchInteractable = true;
+                         } else {
+                             interactionPromptEl.textContent = `Bancada de Preparo`;
+                         }
+                         canInteractWithFocus = benchInteractable;
+                     } else if (ud.type === 'firepit') { // NEW: Firepit interaction
+                         if (gameState.canExtractOil) {
+                             interactionPromptEl.textContent = `[G] Usar Fogueira (Óleo)`;
+                             canInteractWithFocus = true;
+                         } else {
+                             interactionPromptEl.textContent = `Fogueira`;
+                         }
+                     } else if (ud.type === 'npc') {
+                         interactionPromptEl.textContent = `[E] Falar com ${ud.name}`;
+                         canInteractWithFocus = true;
+                     } else if (ud.type === 'bee_link') {
+                         interactionPromptEl.textContent = `[F] Ver Abelhas`;
+                         canInteractWithFocus = true;
+                     } else {
+                         interactionPromptEl.classList.remove('visible'); // Hide if unknown interactive type
+                     }
+
+                     if (!canInteractWithFocus && interactionPromptEl.textContent === "Pressione [E] para Interagir") {
+                          interactionPromptEl.classList.remove('visible'); // Clean up default prompt if not interactive
+                     }
+
+                 } else {
+                      interactionPromptEl.classList.remove('visible');
                  }
-                 // Handle Standard Mission Completion
-                 else {
-                     currentMissionIndex++; // Advance to the next mission *within the current phase*
-                     updateStatus(`Missão Concluída: ${oldMissionDesc}`, 'success');
-                     const missionHeaderEl = document.getElementById('current-mission');
-                     if (missionHeaderEl) { missionHeaderEl.classList.add('highlight'); setTimeout(() => missionHeaderEl.classList.remove('highlight'), 2000); }
-
-                     // Check if the *new* current mission is a phase completion one, and trigger its logic immediately
-                      if (currentMissionIndex < missions.length && missions[currentMissionIndex].type.startsWith('complete_')) {
-                          console.log("Immediately checking phase complete mission:", missions[currentMissionIndex].id);
-                          checkMissionCompletion(); // Run check again for the completion mission
-                      }
-                 }
-                 updateInfoPanel(); // Update UI regardless of mission type
+             } else {
+                  interactionPromptEl.classList.remove('visible');
              }
         }
 
-        // --- Minimap Drawing --- (Unchanged)
-        function updateMinimap(){ if(!minimapCtx||!scene)return; minimapCtx.fillStyle='rgba(0,0,0,0.6)'; minimapCtx.fillRect(0,0,minimapSize,minimapSize); const waterMapPos = worldToMinimap(water.position); const waterMapWidth = (water.geometry.parameters.width / minimapWorldSize) * minimapSize; const waterMapHeight = (water.geometry.parameters.height / minimapWorldSize) * minimapSize; minimapCtx.fillStyle = 'rgba(70, 130, 180, 0.5)'; minimapCtx.fillRect(waterMapPos.x - waterMapWidth/2, waterMapPos.y - waterMapHeight/2, waterMapWidth, waterMapHeight); if(hiveGroup){drawMinimapMarker(minimapCtx,hiveGroup.position,'#DAA520',5,'square'); if(nurseryBuilt && nurseryMesh){ const nurseryWorldPos = new THREE.Vector3(); nurseryMesh.getWorldPosition(nurseryWorldPos); drawMinimapMarker(minimapCtx, nurseryWorldPos, '#F5F5DC', 3, 'hexagon'); }} activeResources.forEach(res=>{if(!res||!res.position)return; if(res===venomSource){if(res.userData.active)drawMinimapMarker(minimapCtx,res.position,'#9400D3',4);}else if(res.userData&&res.userData.type){let c='#888'; switch(res.userData.type){case'mel':c='#FFC107';break; case'propolis':c='#6D4C41';break; case'polen':c='#FF5722';break; case'geleia':c='#9C27B0';break;} drawMinimapMarker(minimapCtx,res.position,c,2);}}); activeWaterSources.forEach(res => { if(!res || !res.position) return; drawMinimapMarker(minimapCtx, res.position, '#03a9f4', 2); }); patientMarkers.forEach(marker=>{ if(!marker||!marker.position)return; const p=pacientes.find(pt=>pt.id===marker.userData.patientId); if(!p)return; const isTarget=!phaseComplete && currentMissionIndex < missions.length && missions[currentMissionIndex].type==='treat' && missions[currentMissionIndex].targetPatientId===p.id; let c= '#007bff'; const product = getRequiredProductForPatient(p.id); let primaryProduct = Array.isArray(product) ? product[0] : product; if (primaryProduct === 'venom' || primaryProduct === 'veneno_homeopatico') c = '#cc00cc'; else if (primaryProduct === 'water') c = '#03a9f4'; else if (primaryProduct === 'cera') c = '#FFA500'; if(isTarget)c='#FFFF00'; drawMinimapMarker(minimapCtx,marker.position,c,3);}); if (apicultorNPC) drawMinimapMarker(minimapCtx, apicultorNPC.position, '#CCCCCC', 4, 'square'); if (beeGroup)drawMinimapMarker(minimapCtx,beeGroup.position,'#FFFFFF',4); }
-        function worldToMinimap(worldPos){ const mapX=(worldPos.x/minimapWorldSize)*minimapSize+minimapSize/2; const mapY=(-worldPos.z/minimapWorldSize)*minimapSize+minimapSize/2; return{x:mapX, y:mapY};}
-        function drawMinimapMarker(ctx,pos,color,size=3,shape='circle'){ if(!pos)return; const mapPos=worldToMinimap(pos); const cX=Math.max(size,Math.min(minimapSize-size,mapPos.x)); const cY=Math.max(size,Math.min(minimapSize-size,mapPos.y)); ctx.fillStyle=color; if(shape==='circle'){ctx.beginPath(); ctx.arc(cX,cY,size,0,Math.PI*2); ctx.fill();}else if(shape==='square'){ctx.fillRect(cX-size/2,cY-size/2,size,size);} else if (shape === 'hexagon') { const angle = Math.PI / 3; ctx.beginPath(); for (let i = 0; i < 6; i++) { ctx.lineTo(cX + size * Math.cos(angle * i), cY + size * Math.sin(angle * i)); } ctx.closePath(); ctx.fill(); }}
+        function interactInfoOrNPC() { /* ... interactInfoOrNPC (Added wood info) ... */
+            if (!objectInFocus || !canInteractWithFocus || !pointerLockControls.isLocked) return;
+            const ud = objectInFocus.userData;
+            if ((ud.type === 'plant' || ud.type === 'wood') && !ud.isCollected) { // Show info for plants or wood
+                showInfoPanel(ud, true);
+            } else if (ud.type === 'npc') {
+                interactWithNPC(objectInFocus);
+            }
+        }
 
-        // REVISED: updateNPCDialogProximity uses reliable state flags
-        function updateNPCDialogProximity() {
-            if (!apicultorNPC || !dialogBox || !beeGroup) return;
-            const distance = beeGroup.position.distanceTo(apicultorNPC.position);
-            const isCurrentlyVisible = dialogBox.classList.contains('visible');
+        // MODIFIED interactActionOrDeposit (Added wood collection)
+        function interactActionOrDeposit() {
+             if (!objectInFocus || !canInteractWithFocus) return;
+             if (currentControlsMode === 'fpv' && !pointerLockControls.isLocked) return;
 
-            if (distance < interactionDistance.npc) {
-                 // Determine the correct dialogue ID based on game state
-                 // The NPC's currentDialogueId should already be set correctly by checkMissionCompletion or startPhaseX
-                 let targetDialogueId = apicultorNPC.userData.currentDialogueId;
+             const ud = objectInFocus.userData;
+             console.log("Action/Deposit triggered on:", ud.type, ud.id);
 
-                 // Override if very start of game
-                 if (currentPhase === 1 && currentMissionIndex === 0 && !phaseComplete) {
-                    targetDialogueId = 'welcome';
-                 }
-                 // Ensure the prompt is shown if waiting for talk
-                 else if (awaitingPhaseTransitionTalk) {
-                     if (currentPhase === 1 && phaseComplete) targetDialogueId = 'phase1_complete_prompt';
-                     else if (currentPhase === 2 && phaseComplete) targetDialogueId = 'phase2_complete_prompt';
-                 }
-                  // Ensure the final message is shown if phase 3 is complete
-                 else if (currentPhase === 3 && phaseComplete) {
-                    targetDialogueId = 'phase3_complete_final';
-                 }
+             if (ud.type === 'plant' && gameState.canCollectPlant && !ud.isCollected) {
+                 collectPlant(objectInFocus);
+             } else if (ud.type === 'wood' && gameState.canCollectWood && !ud.isCollected) { // NEW: Collect wood
+                 collectWood(objectInFocus);
+             } else if (ud.type === 'crafting_bench' && getPlayerPlantCount() > 0) {
+                 depositPlantsToBench(); // 'F' at bench with plants = deposit
+             } else if (ud.type === 'bee_link') {
+                 window.open(ud.url, '_blank');
+                 updateStatus("Visitando o mundo das abelhas...", 'info');
+             }
+        }
 
-                 // Update NPC state if determined ID differs from stored one
-                 if (apicultorNPC.userData.currentDialogueId !== targetDialogueId) {
-                     console.log(`Updating NPC dialogue from ${apicultorNPC.userData.currentDialogueId} to ${targetDialogueId}`);
-                     apicultorNPC.userData.currentDialogueId = targetDialogueId;
-                     delete apicultorNPC.userData.currentDisplayedDialogueId; // Force redraw if ID changed
-                 }
+        function interactCraftExtract() { /* ... interactCraftExtract (Handles both bench and firepit) ... */
+            if (!objectInFocus || !canInteractWithFocus || !pointerLockControls.isLocked) return;
+            const ud = objectInFocus.userData;
+            if (ud.type === 'crafting_bench') {
+                console.log("Craft attempt at bench...");
+                tryCraftingPhyto(); // Only phyto at bench now
+            } else if (ud.type === 'firepit') { // NEW: Firepit interaction
+                console.log("Extract attempt at firepit...");
+                tryExtractingOil();
+            }
+        }
 
-                 showDialog(apicultorNPC); // ShowDialog handles visibility and content update
+        function collectPlant(plantMesh) { /* ... collectPlant (Added check for plant inventory) ... */
+            if (!plantMesh || !plantMesh.userData || plantMesh.userData.isCollected || !gameState.canCollectPlant) { console.warn("Cannot collect plant:", plantMesh?.userData?.id); return; }
+            if (getPlayerPlantCount() >= MAX_PLAYER_PLANT_INVENTORY) {
+                updateStatus(`Inventário de plantas cheio (${MAX_PLAYER_PLANT_INVENTORY}/${MAX_PLAYER_PLANT_INVENTORY})! Deposite na bancada [F].`, 'error');
+                return;
+            }
+            const ud = plantMesh.userData;
+            const plantId = ud.id;
+            gameState.inventory[plantId] = (gameState.inventory[plantId] || 0) + 1;
+            ud.isCollected = true;
+            ud.respawnTimer = PLANT_RESPAWN_TIME;
+            plantMesh.visible = false;
+            if (ud.labelElement) ud.labelElement.classList.remove('visible', 'pulsing');
+            updateStatus(`${ud.name} coletado(a)!`, 'success');
+            updateInventoryUI();
+            hideInfoPanel();
+            interactionPromptEl.classList.remove('visible');
+            checkMissionCompletion();
+        }
 
+        // NEW: Collect Wood
+        function collectWood(woodMesh) {
+            if (!woodMesh || !woodMesh.userData || woodMesh.userData.isCollected || !gameState.canCollectWood) { console.warn("Cannot collect wood:", woodMesh?.userData?.id); return; }
+            if (getPlayerWoodCount() >= MAX_PLAYER_WOOD_INVENTORY) {
+                updateStatus(`Inventário de lenha cheio (${MAX_PLAYER_WOOD_INVENTORY}/${MAX_PLAYER_WOOD_INVENTORY})!`, 'error');
+                return;
+            }
+            const ud = woodMesh.userData;
+            gameState.inventory.wood = (gameState.inventory.wood || 0) + 1; // Add to 'wood' key
+            ud.isCollected = true;
+            ud.respawnTimer = WOOD_RESPAWN_TIME;
+            woodMesh.visible = false;
+            if (ud.labelElement) ud.labelElement.classList.remove('visible', 'pulsing');
+            updateStatus(`${ud.name} coletada!`, 'success');
+            updateInventoryUI();
+            hideInfoPanel();
+            interactionPromptEl.classList.remove('visible');
+            checkMissionCompletion();
+        }
+
+
+        // Function remains, but called automatically now
+        function collectWater() { /* ... unchanged ... */
+            // No need to check canCollectWater anymore, triggered by proximity/availability
+            gameState.inventory.water = (gameState.inventory.water || 0) + WATER_COLLECT_AMOUNT;
+            updateStatus(`Você coletou ${WATER_COLLECT_AMOUNT} unidades de Água!`, 'success');
+            updateInventoryUI();
+            checkMissionCompletion(); // Check if collecting water completes a mission
+        }
+
+        function depositPlantsToBench() { /* ... unchanged ... */
+            if (!objectInFocus || objectInFocus.userData.type !== 'crafting_bench') return;
+            let depositedCount = 0;
+            for (const itemId in gameState.inventory) {
+                // Only deposit plants, not water or wood
+                if (itemId !== 'water' && itemId !== 'wood' && gameState.inventory[itemId] > 0) {
+                    const count = gameState.inventory[itemId];
+                    gameState.benchInventory[itemId] = (gameState.benchInventory[itemId] || 0) + count;
+                    gameState.inventory[itemId] = 0; // Remove from player inventory
+                    depositedCount += count;
+                    console.log(`Deposited ${count} of ${itemId}`);
+                    delete gameState.inventory[itemId]; // Clean up if zero
+                }
+            }
+            if (depositedCount > 0) {
+                updateStatus(`${depositedCount} planta(s) depositada(s) na bancada.`, 'success');
+                updateInventoryUI();
+                checkMissionCompletion();
+                handleFocusRaycast(); // Update prompt after depositing
             } else {
-                // Player is too far - hide the dialog if it was showing for THIS npc
-                if (isCurrentlyVisible && currentNpc === apicultorNPC) {
-                    hideDialog();
+                updateStatus("Você não tem plantas para depositar.", 'info');
+            }
+        }
+
+        // Renamed and modified: Only handles Phyto crafting at the bench
+        function tryCraftingPhyto() {
+            console.log("Trying to craft phyto at bench...");
+            if (gameState.gameComplete) { updateStatus("Você já ajudou a todos!", 'info'); return; }
+            if (!gameState.canCraftPhyto) { updateStatus("Você ainda não aprendeu a preparar chás.", 'info'); return; }
+
+            const currentMission = missions[gameState.currentMissionIndex];
+            if (currentMission && currentMission.type === 'craft_item') {
+                const recipeId = currentMission.recipeId;
+                const recipe = recipes[recipeId];
+                if (!recipe || recipe.type !== 'phyto') {
+                    console.warn("Current mission is not a valid phyto recipe or recipe not found:", recipeId);
+                    updateStatus("Nenhuma receita de chá ativa na missão atual.", 'info');
+                    return;
+                }
+                if (hasIngredients(recipe.ingredients, true)) { // Check bench + player inventory
+                    consumeIngredients(recipe.ingredients); // Consume from bench/player
+                    gameState.craftedItems[recipeId] = true;
+                    updateStatus(`${recipe.name} preparado com sucesso! 🍵`, 'success');
+                    updateInventoryUI();
+                    updateMissionPanel();
+                    checkMissionCompletion();
+                } else {
+                    updateStatus(`Faltam ingredientes para ${recipe.name}. Verifique a bancada (plantas) e o inventário (água).`, 'error');
+                }
+            } else {
+                updateStatus("Use a bancada [G] para preparar o chá da missão atual.", 'info');
+            }
+        }
+
+        // NEW: Handles Oil extraction at the firepit
+        function tryExtractingOil() {
+            console.log("Trying to extract oil at firepit...");
+            if (gameState.gameComplete) { updateStatus("Você já ajudou a todos!", 'info'); return; }
+            if (!gameState.canExtractOil) { updateStatus("Você ainda não aprendeu a extrair óleos essenciais.", 'info'); return; }
+
+            const currentMission = missions[gameState.currentMissionIndex];
+            if (currentMission && currentMission.type === 'extract_oil') {
+                const oilId = currentMission.targetOilId;
+                const requiredPlantId = currentMission.requiresPlantIds[0]; // Assuming one plant type per oil for now
+                const requiredPlantAmount = currentMission.plantAmount || 1;
+                const requiredWoodAmount = currentMission.requiresWoodAmount || WOOD_FOR_OIL; // Use mission value or default
+
+                if (gameState.extractedOils[oilId]) {
+                    updateStatus(`Você já extraiu o Óleo de ${getOilDisplayName(oilId)}.`, 'info');
+                    checkMissionCompletion(); // Might advance if already done
+                    return;
+                }
+
+                // Check ingredients: Plants from BENCH, Wood from PLAYER inventory
+                const hasRequiredPlants = (gameState.benchInventory[requiredPlantId] || 0) >= requiredPlantAmount;
+                const hasRequiredWood = (gameState.inventory.wood || 0) >= requiredWoodAmount;
+
+                if (hasRequiredPlants && hasRequiredWood) {
+                    // Consume ingredients
+                    gameState.benchInventory[requiredPlantId] -= requiredPlantAmount;
+                    if (gameState.benchInventory[requiredPlantId] <= 0) {
+                        delete gameState.benchInventory[requiredPlantId];
+                    }
+                    gameState.inventory.wood -= requiredWoodAmount;
+                    if (gameState.inventory.wood <= 0) {
+                        gameState.inventory.wood = 0; // Ensure it doesn't go negative
+                    }
+
+                    gameState.extractedOils[oilId] = true;
+                    updateStatus(`Óleo Essencial de ${getOilDisplayName(oilId)} extraído na fogueira! 🔥💧`, 'success');
+                    updateInventoryUI();
+                    updateMissionPanel();
+                    checkMissionCompletion();
+                } else {
+                    let errorMsg = `Faltam ingredientes para extrair o Óleo de ${getOilDisplayName(oilId)}: `;
+                    if (!hasRequiredPlants) errorMsg += `Precisa de ${requiredPlantAmount} ${getItemDisplayName(requiredPlantId)} na bancada. `;
+                    if (!hasRequiredWood) errorMsg += `Precisa de ${requiredWoodAmount} Lenha no inventário.`;
+                    updateStatus(errorMsg, 'error');
+                }
+            } else {
+                updateStatus("Use a fogueira [G] para extrair o óleo essencial da missão atual.", 'info');
+            }
+        }
+
+
+        function interactWithNPC(npcMesh) { /* ... unchanged ... */
+            if (!npcMesh || !npcMesh.userData || npcMesh.userData.type !== 'npc') return;
+            const npcData = npcMesh.userData;
+            const npcId = npcData.id;
+            console.log("Interacting with NPC:", npcId, npcData.name);
+            const currentMission = missions[gameState.currentMissionIndex];
+            if (!currentMission) return;
+
+            // Check if current mission involves this NPC
+            if ((currentMission.type === 'find_npc' || currentMission.type === 'npc_dialogue' || currentMission.type === 'deliver_item_to_npc') && currentMission.targetNpcId === npcId) {
+                // Handle delivery
+                if (currentMission.type === 'deliver_item_to_npc') {
+                    const reqType = currentMission.requiredItemType;
+                    const reqId = currentMission.requiredItemId;
+                    let hasItem = false;
+                    if (reqType === 'phyto' && gameState.craftedItems[reqId]) {
+                        hasItem = true;
+                    } else if (reqType === 'oil' && gameState.extractedOils[reqId]) {
+                        hasItem = true;
+                    }
+
+                    if (hasItem) {
+                        updateStatus(`${npcData.name}: "${npcData.dialogue.thanks}"`, 'highlight', true);
+                        gameState.npcStates[npcId] = true; // Mark NPC as helped
+                        // Item consumption happens in checkMissionCompletion now
+                        checkMissionCompletion(); // Trigger mission check immediately after successful interaction
+                    } else {
+                        updateStatus(`${npcData.name}: "${npcData.dialogue.reminder}"`, 'persistent');
+                    }
+                }
+                // Handle initial dialogue or finding
+                else if (currentMission.type === 'find_npc' || currentMission.type === 'npc_dialogue') {
+                    updateStatus(`${npcData.name}: "${npcData.dialogue.initial}"`, 'persistent');
+                    checkMissionCompletion(); // Check if finding/talking completes the mission
+                }
+            }
+            // Generic interaction if mission doesn't involve this NPC currently
+            else {
+                if (gameState.npcStates[npcId]) { // If NPC was already helped
+                    updateStatus(`${npcData.name}: "Obrigado novamente pela ajuda!"`, 'info');
+                } else {
+                    updateStatus(`${npcData.name}: "Olá! Que dia lindo para estar no jardim."`, 'info');
                 }
             }
         }
 
+        // Modified hasIngredients to check bench OR player inventory depending on context
+        // 'checkBenchForPlants' flag added: true checks bench first for non-water/wood items
+        function hasIngredients(ingredients, checkBenchForPlants = false) {
+            for (const itemId in ingredients) {
+                const requiredAmount = ingredients[itemId];
+                let totalAmount = 0;
 
-        // --- Animation Loop --- (Unchanged structure)
-        function animate() { requestAnimationFrame(animate); const delta = clock.getDelta(); /* Movement */ if (moveState.turn !== 0) beeGroup.rotation.y += moveState.turn * turnSpeed * delta; let moveVector = new THREE.Vector3(); if (moveState.forward !== 0) { const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(beeGroup.quaternion); moveVector.addScaledVector(forward, moveState.forward * moveSpeed * delta); } beeGroup.position.add(moveVector); let targetY = beeGroup.position.y; if (moveState.up !== 0) targetY += verticalSpeed * delta; if (moveState.down !== 0) targetY -= verticalSpeed * delta; beeGroup.position.y = Math.max(minBeeHeight, Math.min(maxBeeHeight, targetY)); /* Wing Flapping */ const isMoving = moveState.forward !== 0 || moveState.turn !== 0 || moveState.up !== 0 || moveState.down !== 0; const wingSpeed = isMoving ? 35 : 10; const wingAngle = Math.sin(clock.getElapsedTime() * wingSpeed) * (isMoving ? Math.PI / 6 : Math.PI / 12); if(lWing) lWing.rotation.z = wingAngle; if(rWing) rWing.rotation.z = -wingAngle; /* Interactions */ checkCollisionsAndInteractions(); /* Check needs to happen even if phase complete, to allow talking */ /* NPC Dialog */ updateNPCDialogProximity(); /* Minimap */ if ( (performance.now() * 0.003) % 1 < delta * 3 ) { updateMinimap(); } /* Camera */ const cameraOffset = new THREE.Vector3(0, 1.5+(beeGroup.position.y*0.5), 5+(beeGroup.position.y*0.2)); const desiredCameraPosition = beeGroup.position.clone().add(cameraOffset.applyQuaternion(beeGroup.quaternion)); const lookAtPosition = beeGroup.position.clone().add(new THREE.Vector3(0,0.2,0)); camera.position.lerp(desiredCameraPosition, 0.08); camera.lookAt(lookAtPosition); /* Water */ if (water && water.geometry) { const time = clock.getElapsedTime()*1.5; const posAttr = water.geometry.attributes.position; for (let i=0; i<posAttr.count; i++) { const x=posAttr.getX(i); const y=posAttr.getY(i); posAttr.setZ(i, Math.sin(x*0.5+time)*0.05 + Math.cos(y*0.5+time*0.8)*0.05); } posAttr.needsUpdate = true; } renderer.render(scene, camera); }
+                if (itemId === 'water') {
+                    totalAmount = (gameState.inventory.water || 0) + (gameState.benchInventory.water || 0); // Water can be anywhere (unlikely on bench)
+                } else if (itemId === 'wood') {
+                     totalAmount = (gameState.inventory.wood || 0); // Wood assumed to be only in player inventory for crafting/extraction
+                } else if (checkBenchForPlants) {
+                    // Primarily check bench for plants when crafting phyto
+                    totalAmount = (gameState.benchInventory[itemId] || 0) + (gameState.inventory[itemId] || 0);
+                } else {
+                    // Default: check player inventory first, then bench (e.g., for mission completion check)
+                     totalAmount = (gameState.inventory[itemId] || 0) + (gameState.benchInventory[itemId] || 0);
+                }
 
-        // --- Initial Setup Calls (Revised) ---
-        function initializeGame() {
-            currentPhase = 1;
-            missions = phase1Missions;
-            pacientes = [...phase1Patients];
-            currentMissionIndex = 0;
-            phaseComplete = false;
-            awaitingPhaseTransitionTalk = false;
-            hasReceivedTrophy = false;
-            nurseryBuilt = false;
-            if (nurseryMesh) { hiveGroup.remove(nurseryMesh); nurseryMesh = null; }
-            Object.keys(currentlyCarrying).forEach(k => currentlyCarrying[k] = 0);
-            Object.keys(hiveStorage).forEach(k => hiveStorage[k] = 0);
-            apicultorNPC.userData.currentDialogueId = 'welcome'; // Initial state
-            delete apicultorNPC.userData.currentDisplayedDialogueId;
-            document.getElementById('trophy-display').textContent = "";
-            document.getElementById('nursery-status').textContent = "";
-            setPhaseIndicator(); // Set phase 1 indicator
 
-            updateInfoPanel();
-            spawnInitialResources();
-            hideDialog();
-            updateMinimap();
-            checkMissionCompletion(); // Check if mission 0 is somehow complete
+                if (totalAmount < requiredAmount) {
+                    console.log(`Ingredient check fail: Need ${requiredAmount} of ${itemId}, have ${totalAmount} total.`);
+                    return false;
+                }
+            }
+            return true;
         }
 
-        initializeGame();
-        animate();
+        // Modified consumeIngredients: Prioritizes bench for plants if needed, player for water/wood
+        function consumeIngredients(ingredients) {
+            console.log("Consuming ingredients:", ingredients);
+            for (const itemId in ingredients) {
+                let amountNeeded = ingredients[itemId];
 
-        // --- Resize Listener --- (Unchanged)
+                // Prioritize consuming plants from bench if they exist there
+                if (itemId !== 'water' && itemId !== 'wood' && gameState.benchInventory[itemId] > 0) {
+                    const consumeFromBench = Math.min(amountNeeded, gameState.benchInventory[itemId]);
+                    gameState.benchInventory[itemId] -= consumeFromBench;
+                    amountNeeded -= consumeFromBench;
+                    console.log(`Consumed ${consumeFromBench} of ${itemId} from bench.`);
+                    if (gameState.benchInventory[itemId] <= 0) {
+                        delete gameState.benchInventory[itemId];
+                    }
+                }
+
+                // Consume remaining from player inventory (or water/wood primarily from player)
+                if (amountNeeded > 0 && gameState.inventory[itemId] > 0) {
+                    const consumeFromPlayer = Math.min(amountNeeded, gameState.inventory[itemId]);
+                    gameState.inventory[itemId] -= consumeFromPlayer;
+                    amountNeeded -= consumeFromPlayer;
+                    console.log(`Consumed ${consumeFromPlayer} of ${itemId} from player.`);
+                    if (gameState.inventory[itemId] <= 0 && itemId !== 'water' && itemId !== 'wood') {
+                        delete gameState.inventory[itemId]; // Remove non-essential items if zero
+                    } else if ((itemId === 'water' || itemId === 'wood') && gameState.inventory[itemId] < 0) {
+                        gameState.inventory[itemId] = 0; // Ensure water/wood don't go negative
+                    }
+                }
+
+                // Consume water from bench if necessary (unlikely but possible)
+                if (itemId === 'water' && amountNeeded > 0 && gameState.benchInventory.water > 0) {
+                     const consumeFromBench = Math.min(amountNeeded, gameState.benchInventory.water);
+                     gameState.benchInventory.water -= consumeFromBench;
+                     amountNeeded -= consumeFromBench;
+                     console.log(`Consumed ${consumeFromBench} of ${itemId} from bench.`);
+                     if (gameState.benchInventory.water <= 0) {
+                         delete gameState.benchInventory.water;
+                     }
+                }
+
+
+                if (amountNeeded > 0) {
+                    console.error(`Ingredient Error: Still needed ${amountNeeded} of ${itemId} after consumption!`);
+                }
+            }
+            updateInventoryUI();
+        }
+
+        // NEW: Consume water for respawn
+        function consumeWaterForRespawn() {
+            if ((gameState.inventory.water || 0) > 0) {
+                gameState.inventory.water--;
+                console.log("Consumed 1 water from player inventory for respawn.");
+                updateInventoryUI();
+                return true;
+            } else if ((gameState.benchInventory.water || 0) > 0) {
+                // Less likely, but check bench if player has none
+                gameState.benchInventory.water--;
+                 console.log("Consumed 1 water from bench inventory for respawn.");
+                 if (gameState.benchInventory.water <= 0) delete gameState.benchInventory.water;
+                 updateInventoryUI();
+                return true;
+            }
+            console.log("Respawn failed: No water available.");
+            // updateStatus("As plantas precisam de água para crescer! Colete mais água.", "error"); // Maybe too spammy
+            return false;
+        }
+
+
+        function getRootInteractiveObject(intersectedPart) { /* ... Unchanged ... */ if (!intersectedPart) return null; let object = intersectedPart; while (object.parent && object.parent !== scene) { if (interactiveObjects.includes(object)) { return object; } object = object.parent; } if (interactiveObjects.includes(object)) { return object; } return null; }
+        function focusOnPlant(targetMesh, yOffset = 1.5, zOffset = 3.5) { /* ... Unchanged ... */ if (currentControlsMode !== 'orbit' || isAnimatingCamera) return; isAnimatingCamera = true; orbitControls.enabled = false; const targetPosition = new THREE.Vector3(); targetMesh.getWorldPosition(targetPosition); const cameraDirection = new THREE.Vector3(); camera.getWorldDirection(cameraDirection); const offset = cameraDirection.multiplyScalar(-zOffset).add(new THREE.Vector3(0, yOffset, 0)); const cameraTargetPosition = targetPosition.clone().add(offset); const lookAtTarget = targetPosition.clone().add(new THREE.Vector3(0, 0.5, 0)); gsap.to(camera.position, { x: cameraTargetPosition.x, y: cameraTargetPosition.y, z: cameraTargetPosition.z, duration: 1.0, ease: "power2.inOut" }); gsap.to(orbitControls.target, { x: lookAtTarget.x, y: lookAtTarget.y, z: lookAtTarget.z, duration: 1.0, ease: "power2.inOut", onUpdate: () => orbitControls.update(), onComplete: () => { isAnimatingCamera = false; if(currentControlsMode === 'orbit') { orbitControls.enabled = true; } } }); }
+
+        function showInfoPanel(data, triggerMissionCheck = false) { /* ... showInfoPanel (Handles wood info) ... */
+            if (!data || (data.type !== 'plant' && data.type !== 'wood')) { // Check for plant or wood
+                hideInfoPanel();
+                return;
+            }
+            plantNameEl.textContent = data.name || 'Item Desconhecido';
+            plantGroupEl.textContent = data.type === 'plant' ? (plantGroups[data.group]?.name || 'Desconhecido') : 'Recurso'; // Group or Resource
+            plantBenefitsEl.innerHTML = data.desc.replace(/\*([^*]+)\*/g, '<em>$1</em>') || 'Nenhuma descrição disponível.';
+            plantLinkEl.href = data.link || '#'; // Link might not apply to wood
+            plantLinkEl.style.display = data.link ? 'inline-block' : 'none'; // Hide link if none
+
+            infoPanel.classList.add('visible');
+            hideInstructions();
+
+            if (triggerMissionCheck && !gameState.gameComplete && data.type === 'plant') { // Only trigger knowledge for plants
+                const plantId = data.id;
+                if (!gameState.knowledgeBase[plantId]) {
+                    gameState.knowledgeBase[plantId] = true;
+                    const originalPlantData = plantasData.find(p => p.id === plantId);
+                    if (originalPlantData) originalPlantData.info_viewed = true;
+                    console.log(`Knowledge acquired for: ${plantId}`);
+                    updateStatus(`Você aprendeu sobre: ${data.name}! 🌿`, 'highlight');
+                    updateMissionPanel();
+                    checkMissionCompletion();
+                }
+            }
+        }
+        function hideInfoPanel() { infoPanel.classList.remove('visible'); }
+        function hideInstructions() { instructionsEl.classList.add('hidden'); }
+        closeInfoButton.addEventListener('click', hideInfoPanel);
+
+        // --- Mission Logic (State Updates & Completion Check) ---
+        function updateStatus(message, type = 'info', persistent = false) { /* ... unchanged ... */ statusMessageEl.textContent = message; let color = '#b2dfdb'; if (type === 'success') color = '#a5d6a7'; else if (type === 'error') color = '#ef9a9a'; else if (type === 'highlight') color = '#ffeb3b'; statusMessageEl.style.color = color; gsap.killTweensOf(statusMessageEl); statusMessageEl.style.opacity = 1; if (statusMessageEl.gsapTimeout) { clearTimeout(statusMessageEl.gsapTimeout); statusMessageEl.gsapTimeout = null; } if (!persistent) { statusMessageEl.gsapTimeout = setTimeout(() => { gsap.to(statusMessageEl, { opacity: 0, duration: 0.5, onComplete: () => { if (statusMessageEl.textContent === message) { statusMessageEl.textContent = "Siga as instruções no Diário do Herbalista."; statusMessageEl.style.color = '#b2dfdb'; statusMessageEl.style.opacity = 1; } statusMessageEl.gsapTimeout = null; }}); }, 5500); } }
+        function updateMissionPanel() { /* ... unchanged ... */ if (gameState.gameComplete) { currentMissionEl.innerHTML = "<strong>Todas as missões concluídas! Parabéns!</strong> 🎉"; currentMissionEl.style.borderColor = '#4CAF50'; updateKnowledgeList(); updateCraftedList(); updateExtractedOilsList(); updateInventoryUI(); return; } const mission = missions[gameState.currentMissionIndex]; if (mission) { currentMissionEl.innerHTML = mission.description.replace(/\[(.*?)\]/g, '<strong>$1</strong>'); currentMissionEl.style.borderColor = '#ffeb3b'; } else { currentMissionEl.textContent = "Erro: Missão não encontrada."; currentMissionEl.style.borderColor = '#f44336'; } updateKnowledgeList(); updateCraftedList(); updateExtractedOilsList(); updateInventoryUI(); }
+        function updateKnowledgeList() { /* ... Unchanged ... */ knowledgeBaseEl.innerHTML = ''; let count = 0; Object.keys(gameState.knowledgeBase).sort().forEach(plantId => { if (gameState.knowledgeBase[plantId]) { const plantData = plantasData.find(p => p.id === plantId); const li = document.createElement('li'); li.textContent = plantData ? plantData.name : plantId; knowledgeBaseEl.appendChild(li); count++; } }); if (count === 0) knowledgeBaseEl.innerHTML = '<li>Nenhuma planta estudada.</li>'; }
+        function updateCraftedList() { /* ... Unchanged ... */ craftedItemsEl.innerHTML = ''; let count = 0; Object.keys(gameState.craftedItems).sort().forEach(itemId => { if (gameState.craftedItems[itemId]) { const recipe = recipes[itemId]; const li = document.createElement('li'); li.textContent = recipe ? recipe.name : itemId; craftedItemsEl.appendChild(li); count++; } }); if (count === 0) craftedItemsEl.innerHTML = '<li>Nenhuma preparação feita.</li>'; }
+        function updateExtractedOilsList() { /* ... Unchanged ... */ extractedOilsEl.innerHTML = ''; let count = 0; Object.keys(gameState.extractedOils).sort().forEach(oilId => { if (gameState.extractedOils[oilId]) { const li = document.createElement('li'); li.textContent = getOilDisplayName(oilId); extractedOilsEl.appendChild(li); count++; } }); if (count === 0) extractedOilsEl.innerHTML = '<li>Nenhum óleo essencial extraído.</li>'; }
+
+        function updateInventoryUI() { /* ... updateInventoryUI (displays wood) ... */
+            inventoryListEl.innerHTML = '';
+            let playerItemCount = 0;
+            // Sort order: Plants, Wood, Water
+            const playerSortedItems = Object.keys(gameState.inventory).sort((a, b) => {
+                const typeA = a === 'water' ? 2 : (a === 'wood' ? 1 : 0);
+                const typeB = b === 'water' ? 2 : (b === 'wood' ? 1 : 0);
+                if (typeA !== typeB) return typeA - typeB;
+                return getItemDisplayName(a).localeCompare(getItemDisplayName(b));
+            });
+
+            playerSortedItems.forEach(itemId => {
+                const count = gameState.inventory[itemId];
+                if (count > 0) {
+                    const li = document.createElement('li');
+                    let itemName = getItemDisplayName(itemId);
+                    let itemType = 'unknown';
+                    if (itemId === 'water') itemType = 'water';
+                    else if (itemId === 'wood') itemType = 'wood'; // NEW
+                    else if (plantasData.some(p => p.id === itemId)) itemType = 'plant';
+
+                    li.textContent = `${itemName}: ${count}`;
+                    li.dataset.type = itemType;
+                    inventoryListEl.appendChild(li);
+                    playerItemCount++;
+                } else if (itemId !== 'water' && itemId !== 'wood') { // Keep water/wood keys even if 0
+                    delete gameState.inventory[itemId];
+                }
+            });
+            if (playerItemCount === 0) {
+                inventoryListEl.innerHTML = '<li>Vazio</li>';
+            }
+
+            // Bench Inventory (Should only contain plants and maybe water)
+            benchInventoryListEl.innerHTML = '';
+            let benchItemCount = 0;
+            const benchSortedItems = Object.keys(gameState.benchInventory).sort((a, b) => {
+                 if (a === 'water') return 1; if (b === 'water') return -1; return getItemDisplayName(a).localeCompare(getItemDisplayName(b));
+            });
+            benchSortedItems.forEach(itemId => {
+                const count = gameState.benchInventory[itemId];
+                if (count > 0) {
+                    const li = document.createElement('li');
+                    let itemName = getItemDisplayName(itemId);
+                    let itemType = 'unknown';
+                    if (itemId === 'water') itemType = 'water';
+                    else if (plantasData.some(p => p.id === itemId)) itemType = 'plant';
+                    // No wood expected on bench
+                    li.textContent = `${itemName}: ${count}`;
+                    li.dataset.type = itemType;
+                    benchInventoryListEl.appendChild(li);
+                    benchItemCount++;
+                } else {
+                    delete gameState.benchInventory[itemId];
+                }
+            });
+            if (benchItemCount === 0) {
+                benchInventoryListEl.innerHTML = '<li>Vazio</li>';
+            }
+        }
+
+
+        // MODIFIED: checkMissionCompletion (Handles wood, firepit, updated oil extraction)
+        function checkMissionCompletion() {
+             if (gameState.gameComplete) return;
+             const mission = missions[gameState.currentMissionIndex];
+             if (!mission || mission.alreadyCompleted) return;
+
+             let completed = false;
+             const focusUd = objectInFocus ? objectInFocus.userData : null;
+             const interactionTarget = focusUd ? focusUd.type : null; // bench, firepit, npc etc.
+
+             switch (mission.type) {
+                 case 'message': completed = true; break;
+                 case 'unlock_feature': completed = true; break;
+                 case 'find_object':
+                     completed = (focusUd && focusUd.id === mission.targetObjectId);
+                     if (completed) console.log(`Mission Check: Found object ${mission.targetObjectId}`);
+                     break;
+                 case 'find_npc':
+                     completed = (focusUd && focusUd.type === 'npc' && focusUd.id === mission.targetNpcId);
+                     if (completed) console.log(`Mission Check: Found NPC ${mission.targetNpcId}`);
+                     break;
+                 case 'npc_dialogue':
+                     // Completed by simply interacting (handled in interactWithNPC)
+                     completed = (focusUd && focusUd.type === 'npc' && focusUd.id === mission.targetNpcId);
+                     if (completed) console.log(`Mission Check: Talked to NPC ${mission.targetNpcId}`);
+                     break;
+                 case 'collect_or_deposit':
+                     // Checks total amount across player inventory and bench
+                     const totalAmount = (gameState.inventory[mission.item] || 0) + (gameState.benchInventory[mission.item] || 0);
+                     completed = totalAmount >= mission.amount;
+                     if(completed) console.log(`Mission Check: Have required amount of ${mission.item} (${totalAmount}/${mission.amount})`);
+                     break;
+                 case 'craft_item': // Phyto only
+                     completed = gameState.craftedItems[mission.recipeId] === true && interactionTarget === 'crafting_bench'; // Must be at bench
+                     if (completed) console.log(`Mission Check: Crafted item ${mission.recipeId} at bench`);
+                     break;
+                 case 'extract_oil': // Oil only
+                     completed = gameState.extractedOils[mission.targetOilId] === true && interactionTarget === 'firepit'; // Must be at firepit
+                     if (completed) console.log(`Mission Check: Extracted oil ${mission.targetOilId} at firepit`);
+                     break;
+                 case 'deliver_item_to_npc':
+                     let hasItemToDeliver = false;
+                     if (mission.requiredItemType === 'phyto' && gameState.craftedItems[mission.requiredItemId]) {
+                         hasItemToDeliver = true;
+                     } else if (mission.requiredItemType === 'oil' && gameState.extractedOils[mission.requiredItemId]) {
+                         hasItemToDeliver = true;
+                     }
+                     // Completion requires being focused on the correct NPC AND having the item
+                     completed = (focusUd && focusUd.type === 'npc' && focusUd.id === mission.targetNpcId && hasItemToDeliver);
+                     if (completed) {
+                         console.log(`Mission Check: Delivering ${mission.requiredItemId} to ${mission.targetNpcId}`);
+                         // Consume item upon successful delivery check
+                         if (mission.requiredItemType === 'phyto') {
+                             delete gameState.craftedItems[mission.requiredItemId];
+                         } else if (mission.requiredItemType === 'oil') {
+                             delete gameState.extractedOils[mission.requiredItemId];
+                         }
+                         gameState.npcStates[mission.targetNpcId] = true; // Mark NPC as helped (redundant with interactNPC, but safe)
+                         updateInventoryUI(); // Update UI after consumption
+                         updateMissionPanel(); // Update lists
+                         console.log(`Item ${mission.requiredItemId} consumed after delivery confirmation.`);
+                     }
+                     break;
+                 default:
+                     console.warn("Tipo de missão desconhecido para verificação:", mission.type);
+                     break;
+             }
+
+             if (completed) { /* ... Post-completion logic (Added wood unlock) ... */
+                 mission.alreadyCompleted = true;
+                 console.log(`Mission Concluída: ${mission.id} - ${mission.description.substring(0, 30)}...`);
+
+                 if (mission.type === 'unlock_feature') {
+                     switch (mission.feature) {
+                         case 'collect_plant': gameState.canCollectPlant = true; updateStatus("Você pode coletar plantas [F]!", 'highlight'); break;
+                         case 'collect_wood': gameState.canCollectWood = true; updateStatus("Você pode coletar lenha [F]!", 'highlight'); break; // NEW
+                         case 'deposit': updateStatus("Deposite plantas [F] na bancada para organizar!", 'highlight'); break;
+                         case 'phyto': gameState.canCraftPhyto = true; updateStatus("Preparo de Chás [G] liberado na Bancada!", 'highlight'); break;
+                         case 'oils': gameState.canExtractOil = true; updateStatus("Extração de Óleos Essenciais [G] liberada na Fogueira!", 'highlight'); break; // Updated message
+                     }
+                 } else if (mission.type !== 'message' && mission.type !== 'deliver_item_to_npc') { // Don't show generic message for delivery
+                     updateStatus(`Missão Concluída!`, 'success');
+                 }
+
+                 gameState.currentMissionIndex++;
+                 if (gameState.currentMissionIndex >= missions.length) {
+                     gameState.gameComplete = true;
+                     updateStatus("Parabéns Mestre Herbalista! Você ajudou a todos!", 'highlight', true);
+                     console.log("Jogo Concluído!");
+                 }
+                 updateMissionPanel(); // Update UI with new mission
+
+                 // Auto-advance next simple mission
+                 const nextMission = missions[gameState.currentMissionIndex];
+                 if (nextMission && !gameState.gameComplete) {
+                     if (nextMission.type === 'message' || nextMission.type === 'unlock_feature') {
+                         // Short delay before checking the next simple mission
+                         setTimeout(() => { checkMissionCompletion(); }, 1500);
+                     }
+                     // No automatic check for other types, requires player action
+                 }
+             }
+        }
+
+
+        // --- Minimap Logic ---
+        const minimapCanvas = document.getElementById('minimap-canvas'); const minimapSize = 150; minimapCanvas.width = minimapSize; minimapCanvas.height = minimapSize; const minimapCtx = minimapCanvas.getContext('2d'); const minimapWorldSize = 70; const minimapScale = minimapSize / minimapWorldSize; let lastMinimapUpdateTime = 0; const minimapUpdateInterval = 100;
+        function worldToMinimap(wp){ const mX=(wp.x/minimapWorldSize)*minimapSize+minimapSize/2; const mY=(-wp.z/minimapWorldSize)*minimapSize+minimapSize/2; return{x:mX,y:mY};}
+        function drawMinimapMarker(ctx,pos,color,size=3,shape='circle'){ /* ... drawMinimapMarker (Added wood & firepit shapes) ... */
+            if(!pos)return;
+            const mP=worldToMinimap(pos);
+            const cX=Math.max(size,Math.min(minimapSize-size,mP.x));
+            const cY=Math.max(size,Math.min(minimapSize-size,mP.y));
+            ctx.fillStyle=color;
+            if(shape==='circle'){ctx.beginPath(); ctx.arc(cX,cY,size,0,Math.PI*2); ctx.fill();}
+            else if(shape==='square'){ctx.fillRect(cX-size/2,cY-size/2,size,size);}
+            else if(shape==='bench'){ ctx.fillStyle='#8B4513'; ctx.fillRect(cX - 4, cY - 2, 8, 4);}
+            else if(shape==='water'){ ctx.fillStyle='#64b5f6'; ctx.beginPath(); ctx.arc(cX,cY,size+1,0,Math.PI*2); ctx.fill();}
+            else if(shape === 'npc'){ ctx.fillStyle = color; ctx.beginPath(); ctx.arc(cX, cY, size+1, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.arc(cX, cY, size-1, 0, Math.PI*2); ctx.fill(); }
+            else if(shape === 'wood'){ ctx.fillStyle = '#8D6E63'; ctx.fillRect(cX - 2, cY - 2, 4, 4); } // NEW: Wood marker
+            else if(shape === 'firepit'){ ctx.fillStyle = '#FF6600'; ctx.beginPath(); ctx.arc(cX, cY, size, 0, Math.PI*2); ctx.fill(); ctx.strokeStyle = '#78909C'; ctx.lineWidth = 1; ctx.stroke(); } // NEW: Firepit marker
+        }
+        function updateMinimap(ct){ /* ... updateMinimap (Draws wood & firepit) ... */
+            if(ct-lastMinimapUpdateTime<minimapUpdateInterval)return;
+            lastMinimapUpdateTime=ct;
+            minimapCtx.fillStyle='rgba(0,0,0,0.7)';
+            minimapCtx.fillRect(0,0,minimapSize,minimapSize);
+            // Draw Plants
+            plantMeshes.forEach(m=>{if(!m||!m.position||!m.userData||m.userData.isCollected)return; const gC=plantGroups[m.userData.group]?.color||0xffffff; drawMinimapMarker(minimapCtx,m.position,`#${new THREE.Color(gC).getHexString()}`,2,'circle');});
+            // Draw Wood
+            woodMeshes.forEach(m => { if (!m || !m.position || !m.userData || m.userData.isCollected) return; drawMinimapMarker(minimapCtx, m.position, `#${new THREE.Color(m.userData.color).getHexString()}`, 2, 'wood'); }); // NEW
+            // Draw NPCs
+            npcMeshes.forEach(npc => { if (!npc || !npc.position || !npc.userData) return; const npcColor = `#${new THREE.Color(npc.userData.color || 0xffffff).getHexString()}`; drawMinimapMarker(minimapCtx, npc.position, npcColor, 3, 'npc'); });
+            // Draw Bench, Firepit, Water Source
+            if(craftingBenchMesh) { drawMinimapMarker(minimapCtx, craftingBenchMesh.position, '#8B4513', 4, 'bench'); }
+            if(firepitMesh) { drawMinimapMarker(minimapCtx, firepitMesh.position, '#FF6600', 3, 'firepit'); } // NEW
+            if(waterSourceMesh) { drawMinimapMarker(minimapCtx, waterSourceMesh.position, '#64b5f6', 3, 'water'); }
+            // Draw Bee
+            if(bee) { drawMinimapMarker(minimapCtx, bee.position, '#FFD700', 2, 'circle'); }
+            // Draw Player
+            const pPos=pointerLockControls.isLocked?pointerLockControls.getObject().position:camera.position;
+            drawMinimapMarker(minimapCtx,pPos,'#FFFFFF',4,'square');
+        }
+
+
+        // --- Window Resize Handling ---
         window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }, false);
+
+        // --- Animation Loop (Added Water Consumption, Wood Respawn) ---
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = Math.min(clock.getDelta(), 0.1);
+            const currentTime = performance.now();
+            const playerPosition = pointerLockControls.getObject().position; // Get player position once
+
+            // --- Water Resource Respawn Logic ---
+            if (!gameState.isWaterResourceAvailable) { /* ... unchanged ... */
+                gameState.waterResourceRespawnTimer -= delta;
+                if (gameState.waterResourceRespawnTimer <= 0) {
+                    gameState.isWaterResourceAvailable = true;
+                    waterResourceMesh.visible = true;
+                    waterResourceMesh.scale.set(0.1, 0.1, 0.1);
+                    gsap.to(waterResourceMesh.scale, {x: 1, y: 1, z: 1, duration: 0.3, ease: "back.out(1.7)"});
+                    console.log("Water Resource Spawned");
+                }
+            } else { /* ... unchanged ... */
+                waterResourceMesh.position.y = waterSourceMesh.position.y + 0.8 + Math.sin(currentTime * 0.002) * 0.05;
+            }
+
+
+            // --- FPV Mode Logic ---
+            if (currentControlsMode === 'fpv' && pointerLockControls.isLocked) {
+                handleFocusRaycast();
+
+                // Movement
+                velocity.x -= velocity.x * 10.0 * delta; velocity.z -= velocity.z * 10.0 * delta;
+                direction.z = Number(moveState.forward) - Number(moveState.backward); direction.x = Number(moveState.right) - Number(moveState.left); direction.normalize();
+                if (moveState.forward || moveState.backward) { velocity.z -= direction.z * moveSpeed * 50.0 * delta; }
+                if (moveState.left || moveState.right) { velocity.x -= direction.x * moveSpeed * 50.0 * delta; }
+                pointerLockControls.moveRight(-velocity.x * delta); pointerLockControls.moveForward(-velocity.z * delta);
+                playerPosition.y = 1.6; // Update player position y AFTER movement
+
+                // --- Automatic Water Resource Collection Check (FPV Only) ---
+                if (gameState.isWaterResourceAvailable && waterResourceMesh.visible) { /* ... unchanged ... */
+                     const distanceToWaterResource = playerPosition.distanceTo(waterResourceMesh.position);
+                     if (distanceToWaterResource < WATER_RESOURCE_COLLECT_DISTANCE) {
+                         console.log("Collecting Water Resource by proximity");
+                         collectWater(); // Call the existing collect function
+                         gameState.isWaterResourceAvailable = false; // Mark as collected
+                         waterResourceMesh.visible = false; // Hide mesh
+                         gameState.waterResourceRespawnTimer = WATER_RESOURCE_RESPAWN_TIME; // Reset timer
+                     }
+                }
+
+                // Bee Balloon Check
+                 const beeDistance = bee ? playerPosition.distanceTo(bee.position) : Infinity;
+                 if (beeDistance < 3.0 && (!objectInFocus || objectInFocus.userData?.type !== 'bee_link')) {
+                      beeBalloon.style.display = 'block';
+                 } else { beeBalloon.style.display = 'none'; }
+
+            }
+            // --- Orbit Mode Logic ---
+            else if (currentControlsMode === 'orbit' && orbitControls.enabled) {
+                orbitControls.update();
+                beeBalloon.style.display = 'none';
+            }
+
+            // --- Plant Respawn Logic (with Water Consumption) ---
+            plantMeshes.forEach(plantMesh => {
+                const ud = plantMesh.userData;
+                if (ud.isCollected && ud.respawnTimer > 0) {
+                    ud.respawnTimer -= delta;
+                    if (ud.respawnTimer <= 0) {
+                        // Attempt to consume water BEFORE respawning
+                        if (consumeWaterForRespawn()) {
+                            ud.isCollected = false;
+                            plantMesh.visible = true;
+                            console.log(`${ud.name} respawned (consumed 1 water).`);
+                        } else {
+                            // Failed to respawn due to lack of water, reset timer slightly
+                            ud.respawnTimer = 0.1; // Check again soon
+                            console.log(`Respawn failed for ${ud.name}: No water.`);
+                        }
+                    }
+                }
+            });
+
+            // --- Wood Respawn Logic ---
+            woodMeshes.forEach(woodMesh => {
+                 const ud = woodMesh.userData;
+                 if (ud.isCollected && ud.respawnTimer > 0) {
+                     ud.respawnTimer -= delta;
+                     if (ud.respawnTimer <= 0) {
+                         ud.isCollected = false;
+                         woodMesh.visible = true;
+                         console.log(`${ud.name} respawned.`);
+                     }
+                 }
+            });
+
+
+            updatePlantLabels(); // Update Plant & Wood Labels
+
+            // --- Bee Animation & Balloon ---
+            if (bee) { /* ... unchanged Bee animation ... */ const time = clock.getElapsedTime(); bee.position.y = 1.5 + Math.sin(time * 3) * 0.08; const pathRadiusX = 6; const pathRadiusZ = 4; const pathSpeed = 0.4; const offsetX = 3; const offsetZ = -5; bee.position.x = offsetX + Math.sin(time * pathSpeed) * pathRadiusX; bee.position.z = offsetZ + Math.sin(time * pathSpeed * 2) * pathRadiusZ; const nextX = offsetX + Math.sin((time + 0.1) * pathSpeed) * pathRadiusX; const nextZ = offsetZ + Math.sin((time+0.1) * pathSpeed * 2) * pathRadiusZ; bee.lookAt(nextX, bee.position.y, nextZ); }
+            updateBalloonPosition();
+
+            // --- Firepit Animation (subtle flicker) ---
+            if (firepitMesh) {
+                const fireGlow = firepitMesh.children.find(c => c.material.color.getHex() === 0xff6600);
+                if (fireGlow) {
+                    const flicker = Math.random() * 0.1 + 0.95;
+                    fireGlow.scale.set(flicker, flicker, flicker);
+                    const fireLight = fireGlow.children.find(l => l.isPointLight);
+                    if (fireLight) {
+                        fireLight.intensity = 0.7 + Math.random() * 0.3;
+                    }
+                }
+            }
+
+
+            updateMinimap(currentTime); // Update Minimap
+            renderer.render(scene, camera); // Render Scene
+        }
+
+        // --- Update Plant/Wood Labels Positions and Visibility ---
+        function updatePlantLabels() { /* ... updatePlantLabels (Handles both plant and wood labels) ... */
+            const cameraPosition = camera.position;
+            const allLabeledObjects = [...plantMeshes, ...woodMeshes]; // Combine plants and wood
+
+            allLabeledObjects.forEach(mesh => {
+                const label = plantLabelElements[mesh.userData.id]; // Use the common label store
+                if (!label || mesh.userData.isCollected) {
+                    if(label) label.classList.remove('visible', 'pulsing');
+                    return;
+                }
+                const position = mesh.position;
+                const distanceToCamera = cameraPosition.distanceTo(position);
+
+                if (distanceToCamera < labelMaxDistance && distanceToCamera > 0.5) {
+                    tempVector.copy(position).add(new THREE.Vector3(0, 1.0, 0)); // Label position offset
+                    tempVector.project(camera);
+
+                    if (tempVector.z > 1) { // Check if behind camera
+                        label.classList.remove('visible', 'pulsing');
+                        return;
+                    }
+
+                    const x = (tempVector.x * 0.5 + 0.5) * window.innerWidth;
+                    const y = (-tempVector.y * 0.5 + 0.5) * window.innerHeight;
+                    label.style.left = `${x}px`;
+                    label.style.top = `${y}px`;
+                    label.classList.add('visible', 'pulsing');
+                } else {
+                    label.classList.remove('visible', 'pulsing');
+                }
+            });
+        }
+
+        // --- Bee Balloon Positioning ---
+        function updateBalloonPosition() { /* ... Unchanged ... */ if (!bee || beeBalloon.style.display === 'none') return; const vector = new THREE.Vector3(); const head = bee.children.find(c => c.geometry.type === 'BoxGeometry' && c.position.x < 0); const worldPos = head ? head.getWorldPosition(vector) : bee.getWorldPosition(vector); worldPos.project(camera); const x = (worldPos.x * 0.5 + 0.5) * window.innerWidth; const y = (-worldPos.y * 0.5 + 0.5) * window.innerHeight; beeBalloon.style.left = `${x - beeBalloon.offsetWidth / 2}px`; beeBalloon.style.top = `${y - beeBalloon.offsetHeight - 10}px`; }
+
+        // --- Initial Setup ---
+        craftingBenchMesh = createCraftingBench();
+        firepitMesh = createFirepitMesh(); // NEW
+        waterSourceMesh = createWaterSource();
+        waterResourceMesh = createWaterResourceMesh(waterSourceMesh.position);
+        bee = createBee();
+        // NPCs and Wood created earlier
+
+        orbitControls.enabled = true; pointerLockControls.enabled = false;
+        controlsToggleButton.textContent = 'Ativar Visão Pessoal';
+
+        updateInventoryUI();
+        updateMissionPanel();
+        checkMissionCompletion(); // Initial check for simple missions
+
+        animate(); // Start the game loop
 
     </script>
 </body>
